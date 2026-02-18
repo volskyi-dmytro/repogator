@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#0f172a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+    .status-dot { animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .row-completed { background: rgba(34, 197, 94, 0.06); }
+    .row-error     { background: rgba(239, 68, 68, 0.06); }
+    .row-processing { background: rgba(234, 179, 8, 0.06); }
+    .badge-completed { background: #14532d; color: #86efac; }
+    .badge-error     { background: #450a0a; color: #fca5a5; }
+    .badge-processing { background: #422006; color: #fde68a; }
+    .badge-received  { background: #1e3a5f; color: #93c5fd; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1e293b; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-700 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl font-bold tracking-tight">🐊 {{ app_name }}</span>
+        <span class="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 status-dot inline-block"></span>
+          Live
+        </span>
+      </div>
+      <div class="flex items-center gap-2 text-sm text-slate-400">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clip-rule="evenodd"/>
+        </svg>
+        Monitoring: <span class="text-slate-200 font-medium ml-1">{{ github_repo }}</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- Stats Row -->
+    <section>
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Overview</h2>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <div class="card rounded-xl p-5 flex items-start gap-4">
+          <div class="p-2.5 rounded-lg bg-violet-500/10 border border-violet-500/20">
+            <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-slate-100">{{ stats.total_events }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">Total Events</p>
+          </div>
+        </div>
+
+        <div class="card rounded-xl p-5 flex items-start gap-4">
+          <div class="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-slate-100">{{ stats.issues_enriched }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">Issues Enriched</p>
+          </div>
+        </div>
+
+        <div class="card rounded-xl p-5 flex items-start gap-4">
+          <div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-slate-100">{{ stats.prs_reviewed }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">PRs Reviewed</p>
+          </div>
+        </div>
+
+        <div class="card rounded-xl p-5 flex items-start gap-4">
+          <div class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-2xl font-bold text-slate-100">{{ stats.docs_generated }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">Docs Generated</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Recent Activity Table -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Recent Activity</h2>
+        <span id="refresh-countdown" class="text-xs text-slate-500">Refreshing in 30s</span>
+      </div>
+
+      <div class="card rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-700 text-left">
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Time</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Repository</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Event</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Agent</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Correlation ID</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-700/50">
+              {% for event in recent_events %}
+              <tr class="
+                {% if event.status == 'completed' %}row-completed
+                {% elif event.status == 'error' %}row-error
+                {% elif event.status == 'processing' %}row-processing
+                {% endif %}
+                hover:bg-slate-700/20 transition-colors
+              ">
+                <td class="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
+                  {{ event.timestamp }}
+                </td>
+                <td class="px-4 py-3 text-slate-200 font-medium whitespace-nowrap">
+                  {{ event.repo_full_name }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
+                    {{ event.event_type }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-slate-300 text-xs whitespace-nowrap">
+                  {% if event.agent_name %}{{ event.agent_name }}{% else %}<span class="text-slate-600">—</span>{% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-xs font-semibold px-2.5 py-1 rounded-full
+                    {% if event.status == 'completed' %}badge-completed
+                    {% elif event.status == 'error' %}badge-error
+                    {% elif event.status == 'processing' %}badge-processing
+                    {% else %}badge-received
+                    {% endif %}
+                  ">
+                    {{ event.status }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-slate-500 text-xs font-mono whitespace-nowrap">
+                  {{ event.correlation_id[:8] if event.correlation_id else '—' }}…
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="6" class="px-4 py-12 text-center text-slate-500 text-sm">
+                  No events yet. Point your GitHub webhook to <span class="font-mono text-slate-400">/webhook</span> to get started.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-700/50 mt-16 px-6 py-5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs text-slate-500">
+      <span>Powered by LangGraph + FastAPI</span>
+      <span id="last-updated">Last updated: just now</span>
+    </div>
+  </footer>
+
+  <script>
+    // Auto-refresh countdown + reload
+    let seconds = 30;
+    const countdown = document.getElementById('refresh-countdown');
+    const lastUpdated = document.getElementById('last-updated');
+
+    function tick() {
+      seconds--;
+      if (seconds <= 0) {
+        countdown.textContent = 'Refreshing…';
+        window.location.reload();
+      } else {
+        countdown.textContent = `Refreshing in ${seconds}s`;
+        setTimeout(tick, 1000);
+      }
+    }
+
+    setTimeout(tick, 1000);
+
+    // Show last updated time
+    const now = new Date();
+    lastUpdated.textContent = `Last updated: ${now.toLocaleTimeString()}`;
+  </script>
+
+</body>
+</html>

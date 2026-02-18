@@ -1,0 +1,70 @@
+version: "3.9"
+
+# Production Docker Compose for RepoGator
+# PostgreSQL: uses existing gojoble-postgres container on the gojoble_gojoble network.
+# Do NOT spin up a separate postgres service here.
+# DATABASE_URL in .env should be:
+#   postgresql+asyncpg://repogator:REDACTED_DB_PASSWORD@gojoble-postgres:5432/repogator
+
+services:
+  app:
+    image: ${DOCKER_USERNAME}/repogator:${IMAGE_TAG:-latest}
+    container_name: repogator-app
+    restart: unless-stopped
+    mem_limit: 512m
+    env_file: .env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    networks:
+      - repogator
+      - gojoble_gojoble  # to reach gojoble-postgres
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: repogator-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - repogator
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: repogator-chromadb
+    restart: unless-stopped
+    volumes:
+      - /data/chromadb:/chroma/chroma
+    networks:
+      - repogator
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  redis_data:
+
+networks:
+  repogator:
+    driver: bridge
+  gojoble_gojoble:
+    external: true

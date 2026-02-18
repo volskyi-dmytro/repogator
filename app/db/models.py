@@ -1,0 +1,81 @@
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Text, DateTime, Boolean, JSON, ForeignKey
+from typing import Optional
+from datetime import datetime
+import uuid
+
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy ORM models."""
+
+    pass
+
+
+class WebhookEvent(Base):
+    """Stores raw GitHub webhook events received by the application."""
+
+    __tablename__ = "webhook_events"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    correlation_id: Mapped[str] = mapped_column(String(36), index=True)
+    event_type: Mapped[str] = mapped_column(
+        String(50)
+    )  # "issues" | "pull_request"
+    action: Mapped[str] = mapped_column(String(50))
+    repo_full_name: Mapped[str] = mapped_column(String(200))
+    payload: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(
+        String(20), default="received"
+    )  # received|processing|completed|error
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+    processed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
+
+class AgentAction(Base):
+    """Records each agent action taken in response to a webhook event."""
+
+    __tablename__ = "agent_actions"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    correlation_id: Mapped[str] = mapped_column(String(36), index=True)
+    webhook_event_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("webhook_events.id")
+    )
+    agent_name: Mapped[str] = mapped_column(String(100))
+    input_data: Mapped[dict] = mapped_column(JSON)
+    output_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    github_posted: Mapped[bool] = mapped_column(Boolean, default=False)
+    tokens_used: Mapped[Optional[int]] = mapped_column(nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+
+
+class AuditLog(Base):
+    """Append-only audit log for all significant application events."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    correlation_id: Mapped[str] = mapped_column(String(36), index=True)
+    level: Mapped[str] = mapped_column(String(20))
+    message: Mapped[str] = mapped_column(Text)
+    context: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
