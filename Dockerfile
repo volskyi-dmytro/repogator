@@ -25,6 +25,9 @@ COPY --from=builder /install /usr/local
 
 # Copy application source
 COPY app/ ./app/
+COPY scripts/ ./scripts/
+COPY knowledge_base/ ./knowledge_base/
+COPY frontend/ ./frontend/
 
 # Non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

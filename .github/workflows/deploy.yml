@@ -59,7 +59,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
           cd /opt/repogator
           docker pull ${{ secrets.DOCKER_USERNAME }}/repogator:${{ github.sha }}
-          IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
           DEPLOY
       - name: Health check
         run: |

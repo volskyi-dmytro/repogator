@@ -50,7 +50,7 @@ RepoGator connects to your GitHub repository via webhooks and automatically tria
 | Vector Store | ChromaDB | RAG knowledge base for agents |
 | Job Queue | Redis | Async webhook event processing |
 | Database | PostgreSQL + SQLAlchemy | Audit log, event tracking |
-| Reverse Proxy | nginx | TLS termination, routing |
+| Reverse Proxy | nginx | Reverse proxy, SSL via Cloudflare origin cert |
 | Containerization | Docker + Docker Compose | Local dev and production deployment |
 | CI/CD | GitHub Actions | Automated test, build, deploy |
 | GitHub Integration | PyGitHub + webhook HMAC | Event ingestion, comment posting |
@@ -59,7 +59,7 @@ RepoGator connects to your GitHub repository via webhooks and automatically tria
 
 ```bash
 # 1. Clone and enter the project
-git clone https://github.com/your-org/repogator.git && cd repogator
+git clone https://github.com/volskyi-dmytro/repogator.git && cd repogator
 
 # 2. Copy and fill in environment variables
 cp .env.example .env
@@ -68,10 +68,13 @@ cp .env.example .env
 # 3. Start all services
 docker compose up -d
 
-# 4. Verify the app is running
+# 4. Ingest the knowledge base into ChromaDB (one-time)
+docker exec repogator-app python -m scripts.ingest_knowledge_base
+
+# 5. Verify the app is running
 curl http://localhost:8000/health
 
-# 5. Point your GitHub webhook to http://your-server:8000/webhook
+# 6. Point your GitHub webhook to http://your-server:8000/webhook
 #    with Content-Type: application/json and your GITHUB_WEBHOOK_SECRET
 ```
 
@@ -87,7 +90,7 @@ curl http://localhost:8000/health
 | `OPENROUTER_API_KEY` | API key for OpenRouter LLM calls | Yes | `sk-or-xxxxxxxxxxxx` |
 | `OPENAI_API_KEY` | API key for OpenAI embeddings | Yes | `sk-xxxxxxxxxxxx` |
 | `CHROMADB_HOST` | ChromaDB service hostname | No | `localhost` |
-| `CHROMADB_PORT` | ChromaDB service port | No | `8001` |
+| `CHROMADB_PORT` | ChromaDB service port | No | `8000` |
 | `OPENROUTER_MODEL` | LLM model name via OpenRouter | No | `anthropic/claude-3.5-sonnet` |
 | `DEBUG` | Enable debug logging | No | `false` |
 
@@ -109,9 +112,9 @@ curl http://localhost:8000/health
 | `GET` | `/` | Dashboard UI — live event feed and stats |
 | `GET` | `/health` | Health check for all services (JSON response) |
 
-## Demo
+## Live Instance
 
-![Dashboard](docs/dashboard-screenshot.png)
+[https://repogator.gojoble.online/](https://repogator.gojoble.online/)
 
 ## Development
 

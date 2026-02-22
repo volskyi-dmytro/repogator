@@ -17,11 +17,12 @@ class RepoGatorState(TypedDict):
 
 
 def route_event(state: RepoGatorState) -> str:
-    """Route event to appropriate agent based on event_type."""
+    """Route event to appropriate agent based on event_type and action."""
     event_type = state["event_type"]
-    if event_type == "issues":
+    action = state["payload"].get("action", "")
+    if event_type == "issues" and action == "opened":
         return "requirements_agent"
-    elif event_type == "pull_request":
+    elif event_type == "pull_request" and action == "opened":
         return "code_review_agent"
     else:
         return "unknown_event"
