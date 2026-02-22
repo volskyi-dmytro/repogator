@@ -96,6 +96,8 @@ curl http://localhost:8000/health
 
 ## GitHub Secrets for CI/CD
 
+The CI/CD pipeline (`.github/workflows/deploy.yml`) runs three jobs on every push to `main`: **test → build → deploy**. The deploy job syncs `docker-compose.prod.yml` to the VPS via `scp`, pulls the new image, and restarts only the `app` container.
+
 | Secret | Description |
 |--------|-------------|
 | `DOCKER_USERNAME` | Docker Hub username for image push |
@@ -103,6 +105,17 @@ curl http://localhost:8000/health
 | `VPS_HOST` | IP or hostname of deployment VPS |
 | `VPS_USER` | SSH username on the VPS (e.g. `ubuntu`) |
 | `VPS_SSH_KEY` | Private SSH key for VPS deployment |
+
+## Event Processing
+
+Webhook events follow this lifecycle:
+
+1. `POST /webhook` — signature verified, event persisted to PostgreSQL with `status=received`, pushed to Redis queue
+2. Queue worker pops the event and dispatches it through the LangGraph orchestrator
+3. The appropriate agent processes the event and posts a comment back to GitHub
+4. The DB record is updated to `status=completed` (or `status=failed` on error)
+
+On container restart, any events with `status=received` are automatically re-queued at startup so no events are lost between deployments.
 
 ## API Endpoints
 
