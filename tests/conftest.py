@@ -1,8 +1,7 @@
 import pytest
 import os
-os.environ["TESTING"] = "true"
 
-# Set all required env vars for testing
+os.environ["TESTING"] = "true"
 os.environ.setdefault("GITHUB_TOKEN", "test-token")
 os.environ.setdefault("GITHUB_WEBHOOK_SECRET", "test-secret")
 os.environ.setdefault("GITHUB_REPO", "test-owner/test-repo")
@@ -11,10 +10,17 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
 
+from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
-import pytest_asyncio
+
 
 @pytest.fixture
 def client():
-    from app.main import app
-    return TestClient(app)
+    with (
+        patch("app.db.session.create_all_tables", new_callable=AsyncMock),
+        patch("app.core.queue.RedisQueue.connect", new_callable=AsyncMock),
+        patch("app.core.queue.RedisQueue.disconnect", new_callable=AsyncMock),
+        patch("app.core.queue.RedisQueue.pop_event", new_callable=AsyncMock, return_value=None),
+    ):
+        from app.main import app
+        yield TestClient(app)

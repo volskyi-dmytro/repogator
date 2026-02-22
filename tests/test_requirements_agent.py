@@ -1,10 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-@pytest.mark.asyncio
-async def test_requirements_agent_output_schema(mocker):
-    """Requirements agent returns properly structured output"""
-    mock_llm_response = {
+
+def test_requirements_agent_output_schema():
+    """RequirementsOutput schema validates correctly structured data."""
+    from app.agents.requirements_agent import RequirementsOutput
+
+    data = {
         "enriched_title": "As a user, I want to login with OAuth",
         "acceptance_criteria": [
             "Given I am on the login page, When I click 'Login with GitHub', Then I am redirected to GitHub OAuth"
@@ -13,14 +15,11 @@ async def test_requirements_agent_output_schema(mocker):
         "suggested_labels": ["authentication", "oauth"],
         "complexity": "M",
         "rag_sources": ["requirements_best_practices.md#invest"],
-        "formatted_comment": "## 🤖 Requirements Analysis\n..."
+        "formatted_comment": "## 🤖 Requirements Analysis\n...",
     }
 
-    with patch("app.agents.requirements_agent.RequirementsAgent._call_llm", new_callable=AsyncMock) as mock_llm:
-        mock_llm.return_value = mock_llm_response
-        from app.agents.requirements_agent import RequirementsAgent, RequirementsOutput
-        agent = RequirementsAgent.__new__(RequirementsAgent)
-        # Validate output schema
-        output = RequirementsOutput(**mock_llm_response)
-        assert output.complexity in ["XS", "S", "M", "L", "XL"]
-        assert len(output.acceptance_criteria) > 0
+    output = RequirementsOutput(**data)
+    assert output.complexity in ["XS", "S", "M", "L", "XL"]
+    assert len(output.acceptance_criteria) > 0
+    assert len(output.edge_cases) > 0
+    assert len(output.suggested_labels) > 0
