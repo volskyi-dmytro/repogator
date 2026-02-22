@@ -16,7 +16,12 @@ def make_signature(body: bytes, secret: str) -> str:
 def test_webhook_valid_signature(client, mocker):
     """Valid signature → 200 OK"""
     mocker.patch("app.webhooks.router._queue.push_event", new_callable=AsyncMock)
-    mocker.patch("app.db.session.AsyncSessionLocal")
+
+    mock_session = AsyncMock()
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_cm.__aexit__ = AsyncMock(return_value=False)
+    mocker.patch("app.webhooks.router.AsyncSessionLocal", return_value=mock_cm)
 
     payload = {
         "action": "opened",
