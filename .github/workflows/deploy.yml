@@ -54,6 +54,9 @@ jobs:
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Sync compose file to VPS
+        run: |
+          scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/docker-compose.prod.yml
       - name: Deploy to VPS
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
@@ -65,7 +68,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'HEALTH'
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+            if python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" > /dev/null 2>&1; then
               echo "RepoGator is healthy!"
               exit 0
             fi
