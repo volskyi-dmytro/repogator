@@ -21,11 +21,17 @@ class DocsOutput(BaseModel):
 class DocsAgent:
     """Generates documentation summaries for GitHub issues and PRs."""
 
-    def __init__(self, knowledge_base: KnowledgeBase):
+    def __init__(
+        self,
+        knowledge_base: KnowledgeBase,
+        openrouter_api_key: str | None = None,
+        openrouter_model: str | None = None,
+    ):
         self.kb = knowledge_base
+        self.model = openrouter_model or settings.openrouter_model
         self.llm = AsyncOpenAI(
             base_url=settings.openrouter_base_url,
-            api_key=settings.openrouter_api_key,
+            api_key=openrouter_api_key or settings.openrouter_api_key,
         )
 
     async def process(
@@ -58,7 +64,7 @@ class DocsAgent:
         prompt = self._build_prompt(title, body, diff, rag_context, context_type)
 
         response = await self.llm.chat.completions.create(
-            model=settings.openrouter_model,
+            model=self.model,
             messages=[
                 {
                     "role": "system",

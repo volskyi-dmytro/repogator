@@ -30,11 +30,17 @@ class CodeReviewOutput(BaseModel):
 class CodeReviewAgent:
     """Reviews GitHub PR diffs and provides structured code review."""
 
-    def __init__(self, github_client: GitHubClient):
+    def __init__(
+        self,
+        github_client: GitHubClient,
+        openrouter_api_key: str | None = None,
+        openrouter_model: str | None = None,
+    ):
         self.github = github_client
+        self.model = openrouter_model or settings.openrouter_model
         self.llm = AsyncOpenAI(
             base_url=settings.openrouter_base_url,
-            api_key=settings.openrouter_api_key,
+            api_key=openrouter_api_key or settings.openrouter_api_key,
         )
 
     async def process(self, repo: str, pr_number: int, pr_title: str, pr_body: str, correlation_id: str) -> CodeReviewOutput:
@@ -44,7 +50,7 @@ class CodeReviewAgent:
         prompt = self._build_prompt(pr_title, pr_body, diff)
 
         response = await self.llm.chat.completions.create(
-            model=settings.openrouter_model,
+            model=self.model,
             messages=[
                 {"role": "system", "content": "You are a senior software engineer doing a thorough code review. Return ONLY valid JSON."},
                 {"role": "user", "content": prompt}

@@ -41,6 +41,9 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Local docs (not for version control)
+/docs/
+
 # Logs
 *.log
 logs/

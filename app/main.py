@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, update as sa_update
 
@@ -15,6 +16,9 @@ from app.db.session import create_all_tables, dispose_engine, AsyncSessionLocal
 from app.db.models import WebhookEvent
 from app.webhooks.router import get_queue, router as webhook_router
 from app.dashboard.router import router as dashboard_router
+from app.auth.router import router as auth_router
+from app.repos.router import router as repos_router
+from app.settings_page.router import router as settings_router
 
 logger = get_logger(__name__)
 
@@ -41,16 +45,34 @@ async def _dispatch_event(event: dict) -> None:
         from app.github.client import GitHubClient
         from app.rag.knowledge_base import KnowledgeBase
 
+        # Extract optional per-user keys (from per-repo webhook)
+        user_openrouter_key = event.get("user_openrouter_key")
+        user_openai_key = event.get("user_openai_key")
+        user_openrouter_model = event.get("user_openrouter_model")
+        user_openai_embedding_model = event.get("user_openai_embedding_model")
+
         kb = KnowledgeBase(
             host=settings.chromadb_host,
             port=settings.chromadb_port,
-            openai_api_key=settings.openai_api_key,
-            embedding_model=settings.openai_embedding_model,
+            openai_api_key=user_openai_key or settings.openai_api_key,
+            embedding_model=user_openai_embedding_model or settings.openai_embedding_model,
         )
         github_client = GitHubClient(token=settings.github_token)
-        requirements_agent = RequirementsAgent(knowledge_base=kb)
-        code_review_agent = CodeReviewAgent(github_client=github_client)
-        docs_agent = DocsAgent(knowledge_base=kb)
+        requirements_agent = RequirementsAgent(
+            knowledge_base=kb,
+            openrouter_api_key=user_openrouter_key,
+            openrouter_model=user_openrouter_model,
+        )
+        code_review_agent = CodeReviewAgent(
+            github_client=github_client,
+            openrouter_api_key=user_openrouter_key,
+            openrouter_model=user_openrouter_model,
+        )
+        docs_agent = DocsAgent(
+            knowledge_base=kb,
+            openrouter_api_key=user_openrouter_key,
+            openrouter_model=user_openrouter_model,
+        )
 
         orchestrator = RepoGatorOrchestrator(
             requirements_agent=requirements_agent,
@@ -183,9 +205,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Signed session cookies (itsdangerous-based, used by auth/session.py)
+app.add_middleware(SessionMiddleware, secret_key=settings.session_secret_key)
+
 # Inject correlation ID on every request
 app.add_middleware(CorrelationIdMiddleware)
 
 # Routers
 app.include_router(webhook_router, prefix="", tags=["webhooks"])
 app.include_router(dashboard_router, prefix="", tags=["dashboard"])
+app.include_router(auth_router, prefix="", tags=["auth"])
+app.include_router(repos_router, prefix="", tags=["repos"])
+app.include_router(settings_router, prefix="", tags=["settings"])

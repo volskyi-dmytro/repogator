@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-700 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard" class="text-2xl font-bold tracking-tight">&#x1F40A; {{ app_name }}</a>
+      </div>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="/dashboard" class="text-slate-400 hover:text-white transition-colors">Dashboard</a>
+        <a href="/repos" class="text-slate-400 hover:text-white transition-colors">My Repos</a>
+        <a href="/settings" class="text-white font-medium">Settings</a>
+        <a href="/auth/logout" class="text-slate-400 hover:text-white transition-colors">Logout</a>
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700">
+          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full" />
+          <span class="text-slate-300 text-sm">{{ user.github_login }}</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-6 py-8 space-y-8">
+
+    <h1 class="text-2xl font-bold">API Settings</h1>
+
+    <!-- Flash -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const container = document.getElementById('flash');
+        if (params.get('success')) {
+          container.innerHTML = `<div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg text-sm">${params.get('success')}</div>`;
+        }
+      });
+    </script>
+    <div id="flash"></div>
+
+    <form method="POST" action="/settings" class="card rounded-xl p-8 space-y-6">
+
+      <!-- OpenRouter -->
+      <div class="space-y-4">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">OpenRouter</h2>
+
+        <div>
+          <label class="block text-sm text-slate-300 mb-1">API Key</label>
+          <input type="password" name="openrouter_api_key" placeholder="sk-or-..."
+                 class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+          {% if settings.openrouter_api_key_masked %}
+            <p class="text-xs text-slate-500 mt-1">Current: {{ settings.openrouter_api_key_masked }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-300 mb-1">Model</label>
+          <input type="text" name="openrouter_model" value="{{ settings.openrouter_model }}"
+                 class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        </div>
+      </div>
+
+      <!-- OpenAI -->
+      <div class="space-y-4">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">OpenAI</h2>
+
+        <div>
+          <label class="block text-sm text-slate-300 mb-1">API Key</label>
+          <input type="password" name="openai_api_key" placeholder="sk-..."
+                 class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+          {% if settings.openai_api_key_masked %}
+            <p class="text-xs text-slate-500 mt-1">Current: {{ settings.openai_api_key_masked }}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="block text-sm text-slate-300 mb-1">Embedding Model</label>
+          <input type="text" name="openai_embedding_model" value="{{ settings.openai_embedding_model }}"
+                 class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500">Leave key fields empty to keep existing keys.</p>
+
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors">
+        Save Settings
+      </button>
+
+    </form>
+
+  </main>
+
+  <footer class="border-t border-slate-700/50 mt-16 px-6 py-5">
+    <div class="max-w-7xl mx-auto text-center text-xs text-slate-500">
+      Powered by LangGraph + FastAPI
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -79,3 +79,71 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )
+
+
+class User(Base):
+    """GitHub OAuth user."""
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    github_user_id: Mapped[int] = mapped_column(unique=True, index=True)
+    github_login: Mapped[str] = mapped_column(String(100))
+    github_avatar_url: Mapped[str] = mapped_column(String(500))
+    github_access_token: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+    last_login_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+
+
+class TrackedRepo(Base):
+    """A repository tracked by a user."""
+
+    __tablename__ = "tracked_repos"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), index=True
+    )
+    repo_full_name: Mapped[str] = mapped_column(String(200), index=True)
+    webhook_secret: Mapped[str] = mapped_column(String(64))
+    webhook_id: Mapped[Optional[int]] = mapped_column(nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )
+
+
+class UserSettings(Base):
+    """Per-user configuration for API keys and model preferences."""
+
+    __tablename__ = "user_settings"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), unique=True, index=True
+    )
+    openrouter_api_key: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True
+    )
+    openrouter_model: Mapped[str] = mapped_column(
+        String(100), default="anthropic/claude-3.5-sonnet"
+    )
+    openai_api_key: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True
+    )
+    openai_embedding_model: Mapped[str] = mapped_column(
+        String(100), default="text-embedding-3-small"
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow
+    )

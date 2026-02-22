@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     chromadb_host: str = "localhost"
     chromadb_port: int = 8001
 
+    # GitHub OAuth
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    session_secret_key: str = "change-me-in-production-use-secrets-token-hex-32"
+
+    # App base URL (for webhook callbacks)
+    app_base_url: str = "https://repogator.gojoble.online"
+
     # Queue
     webhook_queue_name: str = "repogator:webhook_events"
 

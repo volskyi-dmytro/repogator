@@ -25,11 +25,17 @@ class RequirementsOutput(BaseModel):
 class RequirementsAgent:
     """Enriches GitHub issues with structured requirements analysis."""
 
-    def __init__(self, knowledge_base: KnowledgeBase):
+    def __init__(
+        self,
+        knowledge_base: KnowledgeBase,
+        openrouter_api_key: str | None = None,
+        openrouter_model: str | None = None,
+    ):
         self.kb = knowledge_base
+        self.model = openrouter_model or settings.openrouter_model
         self.llm = AsyncOpenAI(
             base_url=settings.openrouter_base_url,
-            api_key=settings.openrouter_api_key,
+            api_key=openrouter_api_key or settings.openrouter_api_key,
         )
 
     async def process(
@@ -60,7 +66,7 @@ class RequirementsAgent:
         prompt = self._build_prompt(issue_title, issue_body, rag_context)
 
         response = await self.llm.chat.completions.create(
-            model=settings.openrouter_model,
+            model=self.model,
             messages=[
                 {
                     "role": "system",

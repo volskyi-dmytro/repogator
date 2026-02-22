@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — My Repositories</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-700 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard" class="text-2xl font-bold tracking-tight">&#x1F40A; {{ app_name }}</a>
+      </div>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="/dashboard" class="text-slate-400 hover:text-white transition-colors">Dashboard</a>
+        <a href="/repos" class="text-white font-medium">My Repos</a>
+        <a href="/settings" class="text-slate-400 hover:text-white transition-colors">Settings</a>
+        <a href="/auth/logout" class="text-slate-400 hover:text-white transition-colors">Logout</a>
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700">
+          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full" />
+          <span class="text-slate-300 text-sm">{{ user.github_login }}</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <h1 class="text-2xl font-bold">My Repositories</h1>
+
+    <!-- Flash messages -->
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('flash');
+        if (params.get('success')) {
+          container.innerHTML = `<div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-lg text-sm">${params.get('success')}</div>`;
+        }
+        if (params.get('error')) {
+          container.innerHTML = `<div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">${params.get('error')}</div>`;
+        }
+      });
+    </script>
+    <div id="flash"></div>
+
+    <!-- Add Repo Form -->
+    <div class="card rounded-xl p-6">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Add Repository</h2>
+      <form method="POST" action="/repos" class="flex gap-3">
+        <input type="text" name="repo_full_name" placeholder="owner/repo"
+               class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" required />
+        <button type="submit"
+                class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2 rounded-lg text-sm transition-colors">
+          Add Repo
+        </button>
+      </form>
+    </div>
+
+    <!-- Repos Table -->
+    <div class="card rounded-xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-slate-700 text-left">
+            <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Repository</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Webhook URL</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Created</th>
+            <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+          {% for repo in repos %}
+          <tr class="hover:bg-slate-700/20 transition-colors">
+            <td class="px-4 py-3 text-slate-200 font-medium">{{ repo.repo_full_name }}</td>
+            <td class="px-4 py-3">
+              {% if repo.is_active %}
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-900/50 text-emerald-400">Active</span>
+              {% else %}
+                <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-700 text-slate-400">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3">
+              <code class="text-xs text-slate-400 font-mono cursor-pointer hover:text-slate-200"
+                    onclick="navigator.clipboard.writeText(this.textContent)" title="Click to copy">
+                {{ webhook_base_url }}/webhook/{{ repo.id }}
+              </code>
+            </td>
+            <td class="px-4 py-3 text-slate-400 text-xs">{{ repo.created_at.strftime('%Y-%m-%d') }}</td>
+            <td class="px-4 py-3 text-right">
+              <form method="POST" action="/repos/{{ repo.id }}/delete" class="inline"
+                    onsubmit="return confirm('Delete this repo?')">
+                <button type="submit" class="text-red-400 hover:text-red-300 text-xs font-medium transition-colors">
+                  Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="px-4 py-12 text-center text-slate-500 text-sm">
+              No repositories tracked yet. Add one above to get started.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-700/50 mt-16 px-6 py-5">
+    <div class="max-w-7xl mx-auto text-center text-xs text-slate-500">
+      Powered by LangGraph + FastAPI
+    </div>
+  </footer>
+
+</body>
+</html>

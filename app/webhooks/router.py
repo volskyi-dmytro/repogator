@@ -7,10 +7,12 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from sqlalchemy import text
 
+from sqlalchemy import select as sa_select
+
 from app.config import settings
 from app.core.logging import get_logger
 from app.core.queue import RedisQueue
-from app.db.models import WebhookEvent
+from app.db.models import TrackedRepo, UserSettings, WebhookEvent
 from app.db.session import AsyncSessionLocal
 
 logger = get_logger(__name__)
@@ -46,6 +48,109 @@ def _verify_signature(raw_body: bytes, signature_header: str) -> bool:
         digestmod=hashlib.sha256,
     )
     return hmac.compare_digest(mac.hexdigest(), expected_sig)
+
+
+@router.post("/webhook/{repo_owner}/{repo_name}")
+async def handle_per_repo_webhook(
+    repo_owner: str,
+    repo_name: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Per-repo webhook endpoint with per-repo HMAC secret."""
+    raw_body = await request.body()
+    repo_full_name = f"{repo_owner}/{repo_name}"
+
+    # Look up TrackedRepo
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            sa_select(TrackedRepo).where(
+                TrackedRepo.repo_full_name == repo_full_name,
+                TrackedRepo.is_active == True,
+            )
+        )
+        tracked = result.scalar_one_or_none()
+
+    if not tracked:
+        raise HTTPException(status_code=404, detail="Repo not tracked")
+
+    # Verify signature with per-repo secret
+    signature = request.headers.get("X-Hub-Signature-256", "")
+    if not signature or not signature.startswith("sha256="):
+        raise HTTPException(status_code=401, detail="Missing signature")
+    expected_sig = signature[len("sha256="):]
+    mac = hmac.new(
+        tracked.webhook_secret.encode("utf-8"),
+        msg=raw_body,
+        digestmod=hashlib.sha256,
+    )
+    if not hmac.compare_digest(mac.hexdigest(), expected_sig):
+        logger.warning("Per-repo webhook signature failed", extra={"repo": repo_full_name})
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+
+    # Parse event
+    event_type = request.headers.get("X-GitHub-Event", "unknown")
+    try:
+        payload = json.loads(raw_body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    action = payload.get("action", "unknown")
+    correlation_id = str(uuid.uuid4())
+
+    # Load user settings for per-user API keys
+    user_openrouter_key = None
+    user_openai_key = None
+    user_openrouter_model = None
+    user_openai_embedding_model = None
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            sa_select(UserSettings).where(UserSettings.user_id == tracked.user_id)
+        )
+        user_settings = result.scalar_one_or_none()
+        if user_settings:
+            user_openrouter_key = user_settings.openrouter_api_key
+            user_openai_key = user_settings.openai_api_key
+            user_openrouter_model = user_settings.openrouter_model
+            user_openai_embedding_model = user_settings.openai_embedding_model
+
+    # Persist WebhookEvent
+    async with AsyncSessionLocal() as session:
+        event = WebhookEvent(
+            correlation_id=correlation_id,
+            event_type=event_type,
+            action=action,
+            repo_full_name=repo_full_name,
+            payload=payload,
+            status="received",
+            created_at=datetime.utcnow(),
+        )
+        session.add(event)
+        await session.commit()
+        event_id = event.id
+
+    # Push to queue with user settings
+    queue_payload = {
+        "event_id": event_id,
+        "correlation_id": correlation_id,
+        "event_type": event_type,
+        "action": action,
+        "repo_full_name": repo_full_name,
+        "payload": payload,
+        "user_openrouter_key": user_openrouter_key,
+        "user_openai_key": user_openai_key,
+        "user_openrouter_model": user_openrouter_model,
+        "user_openai_embedding_model": user_openai_embedding_model,
+    }
+    await _queue.push_event(queue_payload)
+
+    logger.info(
+        "Per-repo webhook received and enqueued",
+        extra={"correlation_id": correlation_id, "repo": repo_full_name},
+    )
+
+    return {"status": "accepted", "correlation_id": correlation_id}
 
 
 @router.post("/webhook")
