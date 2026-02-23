@@ -1,6 +1,16 @@
 # 🐊 RepoGator
 
-RepoGator is an AI-powered GitHub automation SaaS that lets users connect their own repositories and get automated issue enrichment, pull request reviews, and documentation generation — all driven by AI agents running in the background. Users authenticate with GitHub OAuth, add repositories they own, and optionally supply their own OpenRouter/OpenAI API keys. The system installs webhooks automatically and processes events through a LangGraph orchestrator backed by a per-user ChromaDB RAG store.
+AI-powered GitHub automation that enriches issues, reviews pull requests, and generates documentation — driven by per-user LangGraph agents and a RAG knowledge base.
+
+## What It Does
+
+RepoGator connects to your GitHub repositories and runs AI agents in the background whenever issues or pull requests are opened. Users authenticate with GitHub OAuth, add repositories they own or have access to, and the system automatically installs a per-repo webhook with a unique HMAC secret. From that point forward, events flow through the pipeline without any manual intervention.
+
+Three specialized agents handle different event types. The Requirements Agent processes new issues: it enriches them with structured acceptance criteria, complexity estimates, and clarifying questions posted as a GitHub comment. The Code Review Agent activates on pull requests, analyzing the diff against your project's coding conventions and documentation to produce actionable, context-aware feedback. The Docs Agent generates documentation summaries tied to code changes, keeping your documentation aligned with what actually ships.
+
+Each agent queries the user's personal ChromaDB knowledge base first. If confidence is low or the collection is empty, the agent falls back to a shared default collection. When a repository is added, RepoGator automatically ingests its documentation files (`README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `SECURITY.md`, `docs/*.md`) into the user's knowledge base in the background, so agents have project context from the start.
+
+Event processing is durable. On container restart, any events with `status=received` are automatically re-queued so nothing is lost between deployments. Every webhook, agent action, and outcome is logged to an append-only audit log.
 
 ## Architecture
 
@@ -37,13 +47,19 @@ RepoGator is an AI-powered GitHub automation SaaS that lets users connect their 
 └──────────────────────┘      └─────────────────────────────┘
 ```
 
-## What It Does
+## Features
 
-Users sign in with their GitHub account via OAuth (minimal `read:user user:email` scope — no scary full-repo permissions dialog). After login they can add any repo they have access to — at that point RepoGator requests `write:repo_hook` scope via incremental authorization, then auto-installs the webhook on GitHub (scoped to issues and pull_request events) with a unique HMAC secret per repo. When events arrive, the LangGraph orchestrator dispatches the right agent: the Requirements Agent enriches issues with acceptance criteria and complexity estimates, the Code Review Agent reviews PRs against codebase conventions from the RAG store, and the Docs Agent generates context-aware documentation summaries. All output is posted back to GitHub as structured comments.
-
-Each user has their own knowledge base in ChromaDB. Agents query the user's collection first and fall back to the shared default collection if the user's KB is empty or low-confidence. When a repo is added, RepoGator automatically ingests its documentation files (CONTRIBUTING.md, ARCHITECTURE.md, SECURITY.md, README.md, docs/*.md) into the user's knowledge base in the background.
-
-Users can supply their own OpenRouter and OpenAI API keys in the Settings page so agent calls are billed to their own accounts. If no keys are provided, the system falls back to the admin keys.
+- GitHub OAuth login with incremental scope — minimal permissions at sign-in, `write:repo_hook` requested only when adding a repo
+- Automatic webhook installation per repository with unique HMAC secrets
+- Three AI agents: Requirements enrichment, Code Review, and Documentation generation
+- Per-user ChromaDB knowledge base with shared fallback collection
+- Auto-ingestion of repository documentation files on repo add
+- Manual knowledge base management: upload files (`.md`, `.txt`, `.pdf`) or index any public URL
+- Per-user OpenRouter and OpenAI API keys — agent calls billed to the user's own accounts
+- Admin fallback keys for users who have not configured their own
+- Durable event queue — events are re-queued on restart, no data loss
+- Append-only audit log for all significant application events
+- Health check endpoint covering all downstream services
 
 ## Tech Stack
 
@@ -52,142 +68,113 @@ Users can supply their own OpenRouter and OpenAI API keys in the Settings page s
 | API Server | FastAPI + Uvicorn | Webhook receiver, web UI, health checks |
 | Auth | GitHub OAuth + itsdangerous | Signed session cookies, incremental scope |
 | Orchestration | LangGraph | Stateful multi-agent workflow |
-| LLM | OpenRouter (Claude 3.5 Sonnet) | Agent reasoning and structured output |
+| LLM | OpenRouter (configurable model) | Agent reasoning and structured output |
 | Embeddings | OpenAI text-embedding-3-small | RAG vector search |
-| Vector Store | ChromaDB | Per-user RAG knowledge base with shared fallback |
+| Vector Store | ChromaDB | Per-user knowledge base with shared fallback |
 | Job Queue | Redis | Async webhook event processing |
 | Database | PostgreSQL + SQLAlchemy | Users, repos, events, knowledge docs, audit log |
-| Reverse Proxy | nginx | Reverse proxy, SSL via Cloudflare origin cert |
+| Reverse Proxy | nginx | Reverse proxy, SSL termination |
 | Containerization | Docker + Docker Compose | Local dev and production deployment |
-| CI/CD | GitHub Actions | Automated test, build, deploy |
+| CI/CD | GitHub Actions | Automated test, build, push, deploy |
 
-## Quick Start
+## Multi-Tenant Model
+
+Each user authenticates via GitHub OAuth. The initial OAuth flow requests only `read:user user:email` — no broad repository permissions. When a user adds a repository, RepoGator initiates an incremental authorization to acquire `write:repo_hook` scope, then installs the webhook on GitHub automatically.
+
+Users configure their own OpenRouter and OpenAI API keys in the Settings page. When keys are present, all agent LLM calls and embedding lookups are billed to the user's own accounts. If a user has not set their keys, the system falls back to the admin-level keys configured via the `OPENROUTER_API_KEY` and `OPENAI_API_KEY` environment variables. Events for users without keys and without admin fallback keys will fail with a clear error recorded in the event log.
+
+The admin user is determined by the `ADMIN_EMAIL` environment variable. Any GitHub account whose primary email matches this value is granted admin status on first login.
+
+## Getting Started (Local Development)
+
+### Prerequisites
+
+- Docker and Docker Compose
+- A GitHub OAuth App (see below)
+- OpenRouter and OpenAI API keys
+
+### GitHub OAuth App Setup
+
+1. Go to **GitHub → Settings → Developer settings → OAuth Apps → New OAuth App**
+2. Set **Authorization callback URL** to `http://localhost:8000/auth/callback`
+3. Add **Additional callback URL**: `http://localhost:8000/auth/expand-callback`
+4. Copy the **Client ID** and a generated **Client Secret** into your `.env`
+
+### Running Locally
 
 ```bash
-# 1. Clone and enter the project
-git clone https://github.com/volskyi-dmytro/repogator.git && cd repogator
+# 1. Clone the repository
+git clone https://github.com/volskyi-dmytro/repogator.git
+cd repogator
 
 # 2. Copy and fill in environment variables
 cp .env.example .env
-# Edit .env — see Environment Variables table below
+# Edit .env — see Environment Variables section below
 
 # 3. Start all services
 docker compose up -d
 
-# 4. Ingest the shared knowledge base into ChromaDB (one-time)
+# 4. Ingest the shared knowledge base (one-time setup)
 docker exec repogator-app python -m scripts.ingest_knowledge_base
 
 # 5. Verify the app is running
 curl http://localhost:8000/health
 
-# 6. Visit http://localhost:8000 and log in with GitHub
+# 6. Visit http://localhost:8000 and sign in with GitHub
+```
+
+### Running Tests
+
+```bash
+pip install -r requirements.txt
+pytest tests/ -v
 ```
 
 ## Environment Variables
 
-| Variable | Description | Required | Example |
-|----------|-------------|----------|---------|
-| `GITHUB_TOKEN` | Admin token for legacy `/webhook` endpoint | Yes | `ghp_xxxxxxxxxxxx` |
-| `GITHUB_WEBHOOK_SECRET` | Secret for legacy `/webhook` endpoint | Yes | `my-random-secret` |
-| `GITHUB_REPO` | Default repo for legacy mode | Yes | `octocat/hello-world` |
-| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID | Yes | `Ov23lixxxxxxxxxx` |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret | Yes | `abc123...` |
-| `SESSION_SECRET_KEY` | Secret for signing session cookies | Yes | `secrets.token_hex(32)` |
-| `DATABASE_URL` | PostgreSQL async connection string | Yes | `postgresql+asyncpg://user:pass@localhost/repogator` |
-| `REDIS_URL` | Redis connection URL | Yes | `redis://localhost:6379` |
-| `OPENROUTER_API_KEY` | Fallback LLM key (admin mode) | Yes | `sk-or-xxxxxxxxxxxx` |
-| `OPENAI_API_KEY` | Fallback embeddings key (admin mode) | Yes | `sk-xxxxxxxxxxxx` |
-| `APP_BASE_URL` | Public base URL for webhook callbacks | No | `https://repogator.gojoble.online` |
-| `CHROMADB_HOST` | ChromaDB service hostname | No | `localhost` |
-| `CHROMADB_PORT` | ChromaDB service port | No | `8001` |
-| `OPENROUTER_MODEL` | Default LLM model | No | `anthropic/claude-3.5-sonnet` |
-| `DEBUG` | Enable debug logging | No | `false` |
+No actual values should be committed to version control. Copy `.env.example` to `.env` and fill in the values below.
 
-## GitHub OAuth App Setup
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `APP_NAME` | Application display name | No (default: `RepoGator`) |
+| `DEBUG` | Enable debug logging | No (default: `false`) |
+| `GITHUB_TOKEN` | Admin GitHub token for the legacy `/webhook` endpoint | Yes |
+| `GITHUB_WEBHOOK_SECRET` | HMAC secret for the legacy `/webhook` endpoint | Yes |
+| `GITHUB_REPO` | Default repository for legacy webhook mode (`owner/repo`) | Yes |
+| `DATABASE_URL` | PostgreSQL async connection string (`postgresql+asyncpg://...`) | Yes |
+| `REDIS_URL` | Redis connection URL | Yes |
+| `OPENROUTER_API_KEY` | Admin-level LLM API key (fallback for users without their own key) | Yes |
+| `OPENROUTER_BASE_URL` | OpenRouter base URL | No (default: `https://openrouter.ai/api/v1`) |
+| `OPENROUTER_MODEL` | Default LLM model identifier | No (default: `anthropic/claude-3.5-sonnet`) |
+| `OPENAI_API_KEY` | Admin-level embeddings API key (fallback for users without their own key) | Yes |
+| `OPENAI_EMBEDDING_MODEL` | Embedding model name | No (default: `text-embedding-3-small`) |
+| `CHROMADB_HOST` | ChromaDB service hostname | No (default: `localhost`) |
+| `CHROMADB_PORT` | ChromaDB service port | No (default: `8001`) |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID | Yes |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret | Yes |
+| `SESSION_SECRET_KEY` | Secret for signing session cookies — use `python -c "import secrets; print(secrets.token_hex(32))"` | Yes |
+| `APP_BASE_URL` | Public base URL used for webhook callback registration | Yes |
+| `ADMIN_EMAIL` | GitHub account email that receives admin privileges on first login | Yes |
 
-1. Go to **github.com → Settings → Developer settings → OAuth Apps → New OAuth App**
-2. Set **Authorization callback URL** to `https://your-domain/auth/callback`
-3. Set **Additional callback URL** to `https://your-domain/auth/expand-callback` (for incremental scope)
-4. Copy the **Client ID** (starts with `Ov23li...`) and a generated **Client Secret** into your `.env`
+## Deployment
 
-> Note: The Client ID starts with the letter **O** (not the digit 0). They look identical in some fonts.
+RepoGator is deployed with Docker Compose behind nginx. The CI/CD pipeline (`.github/workflows/deploy.yml`) runs on every push to `main`:
 
-## GitHub Secrets for CI/CD
+1. **Test** — runs the full test suite
+2. **Build** — builds and pushes the Docker image to Docker Hub
+3. **Deploy** — SSHs into the server, pulls the new image, and restarts services with `docker compose up -d`
 
-The CI/CD pipeline (`.github/workflows/deploy.yml`) runs **test → build → deploy** on every push to `main`.
+Required GitHub Actions secrets:
 
 | Secret | Description |
 |--------|-------------|
 | `DOCKER_USERNAME` | Docker Hub username |
 | `DOCKER_PASSWORD` | Docker Hub access token |
-| `VPS_HOST` | IP or hostname of deployment VPS |
-| `VPS_USER` | SSH username on the VPS |
-| `VPS_SSH_KEY` | Private SSH key for VPS deployment |
+| `VPS_HOST` | Hostname or IP of the deployment server |
+| `VPS_USER` | SSH username on the deployment server |
+| `VPS_SSH_KEY` | Private SSH key for deployment |
 
-## Event Processing
-
-Webhook events follow this lifecycle:
-
-1. `POST /webhook/{owner}/{repo}` — per-repo HMAC signature verified, event persisted with `status=received`, pushed to Redis queue along with the user's API keys
-2. Queue worker pops the event, dispatches through LangGraph orchestrator using the user's keys (falls back to admin keys if unset)
-3. The appropriate agent processes the event, querying the user's ChromaDB collection first (falls back to shared collection)
-4. Agent posts a comment back to GitHub, DB record updated to `status=completed` or `status=failed`
-
-On container restart, events with `status=received` are automatically re-queued so no events are lost between deployments.
-
-## Knowledge Base
-
-Each user has isolated knowledge base collections in ChromaDB. Agents query the user's collection first; if confidence is low, they merge results from the shared default collection as a fallback.
-
-Users manage their knowledge base at `/knowledge`:
-
-- **Upload files** — `.md`, `.txt`, or `.pdf` (max 10 MB), assigned to a collection type (Requirements / Code Review / Documentation / General)
-- **Index a URL** — paste any public URL; RepoGator fetches and indexes the content (max 500 KB)
-- **Auto-ingestion** — when a repo is added, RepoGator automatically fetches and indexes `CONTRIBUTING.md`, `ARCHITECTURE.md`, `SECURITY.md`, `README.md`, and `docs/*.md` from that repo in the background
-
-Collection types map to agent usage: `requirements` → Requirements Agent, `code_review` → Code Review Agent, `docs` → Docs Agent, `general` → all agents.
-
-## API Endpoints
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/` | None | Landing page |
-| `GET` | `/dashboard` | Session | Event feed and stats for user's repos |
-| `GET` | `/repos` | Session | List tracked repositories |
-| `POST` | `/repos` | Session | Add repo (triggers incremental OAuth → installs webhook → auto-ingests docs) |
-| `POST` | `/repos/{id}/delete` | Session | Remove repo and delete its webhook |
-| `GET` | `/settings` | Session | View/edit API key configuration |
-| `POST` | `/settings` | Session | Save API keys and model preferences |
-| `GET` | `/knowledge` | Session | Knowledge base management page |
-| `GET` | `/knowledge/list` | Session | List user's knowledge documents (JSON) |
-| `POST` | `/knowledge/upload` | Session | Upload and index a file |
-| `POST` | `/knowledge/url` | Session | Fetch and index a URL |
-| `DELETE` | `/knowledge/{id}` | Session | Delete a knowledge document |
-| `GET` | `/auth/github` | None | Redirect to GitHub OAuth (minimal scope) |
-| `GET` | `/auth/callback` | None | OAuth callback — sets session, redirects to dashboard |
-| `GET` | `/auth/expand-scope` | None | Re-initiate OAuth with `write:repo_hook` scope |
-| `GET` | `/auth/expand-callback` | None | Expanded-scope callback — updates token, resumes repo add |
-| `GET` | `/auth/logout` | None | Clear session, redirect to landing |
-| `POST` | `/webhook/{owner}/{repo}` | HMAC | Per-repo webhook endpoint |
-| `POST` | `/webhook` | HMAC | Legacy webhook endpoint (global secret) |
-| `GET` | `/health` | None | Health check for all services |
-
-## Live Instance
-
-[https://repogator.gojoble.online/](https://repogator.gojoble.online/)
-
-## Development
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the test suite
-pytest tests/ -v
-
-# Run with live reload during development
-uvicorn app.main:app --reload --port 8000
-```
+For full deployment instructions including nginx configuration, SSL setup, and environment variable management on the server, see `docs/go-live-guide.md`.
 
 ## License
 

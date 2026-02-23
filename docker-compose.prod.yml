@@ -1,10 +1,10 @@
 version: "3.9"
 
 # Production Docker Compose for RepoGator
-# PostgreSQL: uses existing gojoble-postgres container on the gojoble_gojoble network.
+# PostgreSQL: uses existing container on an external Docker network.
 # Do NOT spin up a separate postgres service here.
 # DATABASE_URL in .env should be:
-#   postgresql+asyncpg://repogator:REDACTED_DB_PASSWORD@gojoble-postgres:5432/repogator
+#   See .env file — never commit credentials
 
 services:
   app:
@@ -22,7 +22,7 @@ services:
         condition: service_healthy
     networks:
       - repogator
-      - gojoble_gojoble  # to reach gojoble-postgres
+      - gojoble_gojoble  # external network to reach postgres
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s

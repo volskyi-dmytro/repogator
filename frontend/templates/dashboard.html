@@ -61,7 +61,7 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/dashboard" class="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <img src="/static/logo-128.png" class="w-10 h-10 object-contain" alt="RepoGator logo" />
+          <img src="/static/logo-128.png" class="h-9 w-auto object-contain" alt="RepoGator logo" />
           <span class="text-white">{{ app_name }}</span>
         </a>
         <span class="flex items-center gap-1.5 text-xs text-[#00ff88] font-medium bg-[#00ff88]/10 px-2.5 py-1 rounded-full border border-[#00ff88]/30">
@@ -69,7 +69,7 @@
           Live
         </span>
       </div>
-      <nav class="flex items-center gap-6 text-sm">
+      <nav class="hidden md:flex items-center gap-6 text-sm">
         <a href="/dashboard" class="text-[#00d4ff] font-medium border-b-2 border-[#00d4ff] pb-0.5">Dashboard</a>
         <a href="/repos" class="text-slate-400 hover:text-[#00d4ff] transition-colors">My Repos</a>
         <a href="/knowledge" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Knowledge Base</a>
@@ -88,7 +88,7 @@
     <!-- Stats Row -->
     <section>
       <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-[#00d4ff]/60 mb-4">Overview</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
         <div class="glass-card p-5 flex items-start gap-4">
           <div class="p-2.5 rounded-lg bg-[#7c3aed]/10 border border-[#7c3aed]/30">
@@ -210,7 +210,7 @@
 
   <!-- Footer -->
   <footer class="border-t border-[#00d4ff]/10 mt-16 px-6 py-5">
-    <div class="max-w-7xl mx-auto flex items-center justify-between text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
       <span>Powered by LangGraph + FastAPI</span>
       <span id="last-updated">Last updated: just now</span>
     </div>

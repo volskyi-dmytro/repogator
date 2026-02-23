@@ -130,7 +130,7 @@
   <header class="glass-header sticky top-0 z-50 px-6 py-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <img src="/static/logo-128.png" class="w-10 h-10 object-contain" alt="RepoGator logo">
+        <img src="/static/logo-128.png" class="h-9 w-auto object-contain" alt="RepoGator logo">
         <span class="text-2xl font-bold tracking-tight">{{ app_name }}</span>
       </div>
       <a href="/auth/github"
@@ -146,11 +146,11 @@
   <main class="relative z-10 max-w-7xl mx-auto px-6">
 
     <!-- Hero -->
-    <section class="py-28 text-center hero-section">
-      <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 gradient-text">
+    <section class="py-16 sm:py-24 md:py-28 text-center hero-section">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 gradient-text">
         AI-powered SDLC automation<br/>for your GitHub repos
       </h1>
-      <p class="text-xl text-slate-400 max-w-2xl mx-auto mb-12 glow-sub">
+      <p class="text-base sm:text-xl text-slate-400 max-w-2xl mx-auto mb-12 glow-sub">
         RepoGator watches your GitHub webhooks and automatically enriches issues,
         reviews pull requests, and generates documentation.
       </p>
@@ -165,7 +165,7 @@
 
     <!-- Feature Cards -->
     <section class="pb-28">
-      <div class="grid md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div class="glass-card rounded-xl p-8">
           <div class="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 w-fit mb-5">

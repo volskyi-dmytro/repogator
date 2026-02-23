@@ -54,11 +54,11 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/dashboard" class="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <img src="/static/logo-128.png" class="w-10 h-10 object-contain" alt="RepoGator logo" />
+          <img src="/static/logo-128.png" class="h-9 w-auto object-contain" alt="RepoGator logo" />
           <span class="text-white">{{ app_name }}</span>
         </a>
       </div>
-      <nav class="flex items-center gap-6 text-sm">
+      <nav class="hidden md:flex items-center gap-6 text-sm">
         <a href="/dashboard" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Dashboard</a>
         <a href="/repos" class="text-slate-400 hover:text-[#00d4ff] transition-colors">My Repos</a>
         <a href="/knowledge" class="text-[#00d4ff] font-medium border-b-2 border-[#00d4ff] pb-0.5">Knowledge Base</a>
@@ -89,7 +89,7 @@
       <!-- Upload File Tab -->
       <div id="tab-upload">
         <form id="upload-form" class="flex flex-col gap-3">
-          <div class="flex gap-3">
+          <div class="flex flex-col sm:flex-row gap-3">
             <input type="file" name="file" accept=".md,.txt,.pdf"
                    class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-[#00d4ff]/10 file:text-[#00d4ff] hover:file:bg-[#00d4ff]/20 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30" required />
             <select name="collection_type" class="bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30">
@@ -107,7 +107,7 @@
       <!-- Add URL Tab -->
       <div id="tab-url" class="hidden">
         <form id="url-form" class="flex flex-col gap-3">
-          <div class="flex gap-3">
+          <div class="flex flex-col sm:flex-row gap-3">
             <input type="url" id="url-input" placeholder="https://example.com/docs/guide"
                    class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30 font-mono" required />
             <select id="url-collection" class="bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30">
