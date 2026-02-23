@@ -6,7 +6,7 @@ from datetime import datetime
 import uuid
 
 from app.config import settings
-from app.auth.session import set_session, clear_session
+from app.auth.session import set_session, clear_session, get_current_user
 from app.db.session import AsyncSessionLocal
 from app.db.models import User, UserSettings
 
@@ -20,7 +20,7 @@ GITHUB_USER_URL = "https://api.github.com/user"
 @router.get("/github")
 async def github_login():
     """Redirect to GitHub OAuth authorization page."""
-    params = f"client_id={settings.github_client_id}&scope=repo,read:user"
+    params = f"client_id={settings.github_client_id}&scope=read:user%20user:email"
     return RedirectResponse(f"{GITHUB_AUTHORIZE_URL}?{params}")
 
 
@@ -103,6 +103,73 @@ async def github_callback(request: Request, code: str = "", error: str = ""):
         "github_avatar_url": github_avatar_url,
         "github_access_token": access_token,
     })
+    return response
+
+
+@router.get("/expand-scope")
+async def expand_scope(request: Request, repo: str = ""):
+    """Redirect to GitHub OAuth with expanded scope (for webhook installation)."""
+    import urllib.parse
+    state = urllib.parse.quote(f"repo:{repo}") if repo else ""
+    params = f"client_id={settings.github_client_id}&scope=read:user+user:email+write:repo_hook"
+    if state:
+        params += f"&state={state}"
+    return RedirectResponse(f"{GITHUB_AUTHORIZE_URL}?{params}")
+
+
+@router.get("/expand-callback")
+async def expand_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    """Handle GitHub OAuth callback for expanded scope."""
+    if error or not code:
+        return RedirectResponse("/repos?error=oauth_failed")
+
+    # Exchange code for access token (same as regular callback)
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            GITHUB_TOKEN_URL,
+            data={
+                "client_id": settings.github_client_id,
+                "client_secret": settings.github_client_secret,
+                "code": code,
+            },
+            headers={"Accept": "application/json"},
+        )
+        token_data = token_resp.json()
+
+    access_token = token_data.get("access_token")
+    if not access_token:
+        return RedirectResponse("/repos?error=no_token")
+
+    # Get current user from session
+    user_session = get_current_user(request)
+    if not user_session:
+        return RedirectResponse("/?error=not_logged_in")
+
+    # Update access token in DB
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.id == user_session["user_id"])
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            user.github_access_token = access_token
+            await session.commit()
+
+    # Update session with new token
+    import urllib.parse
+    pending_repo = ""
+    if state.startswith("repo:"):
+        pending_repo = urllib.parse.unquote(state[5:])
+
+    response_url = f"/repos?success=scope_expanded"
+    if pending_repo:
+        response_url += f"&pending_repo={urllib.parse.quote(pending_repo)}"
+
+    response = RedirectResponse(response_url)
+    # Update session token
+    new_session_data = dict(user_session)
+    new_session_data["github_access_token"] = access_token
+    set_session(response, new_session_data)
     return response
 
 

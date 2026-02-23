@@ -19,6 +19,7 @@ from app.dashboard.router import router as dashboard_router
 from app.auth.router import router as auth_router
 from app.repos.router import router as repos_router
 from app.settings_page.router import router as settings_router
+from app.knowledge.router import router as knowledge_router
 
 logger = get_logger(__name__)
 
@@ -56,6 +57,7 @@ async def _dispatch_event(event: dict) -> None:
             port=settings.chromadb_port,
             openai_api_key=user_openai_key or settings.openai_api_key,
             embedding_model=user_openai_embedding_model or settings.openai_embedding_model,
+            user_id=event.get("user_id"),
         )
         github_client = GitHubClient(token=settings.github_token)
         requirements_agent = RequirementsAgent(
@@ -217,3 +219,4 @@ app.include_router(dashboard_router, prefix="", tags=["dashboard"])
 app.include_router(auth_router, prefix="", tags=["auth"])
 app.include_router(repos_router, prefix="", tags=["repos"])
 app.include_router(settings_router, prefix="", tags=["settings"])
+app.include_router(knowledge_router, prefix="", tags=["knowledge"])

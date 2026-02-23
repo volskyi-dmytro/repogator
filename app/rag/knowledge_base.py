@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class KnowledgeBase:
     """ChromaDB-backed knowledge base with OpenAI embeddings."""
 
-    def __init__(self, host: str, port: int, openai_api_key: str, embedding_model: str):
+    def __init__(self, host: str, port: int, openai_api_key: str, embedding_model: str, user_id: str = None):
         self.client = chromadb.HttpClient(
             host=host,
             port=port,
@@ -19,6 +19,13 @@ class KnowledgeBase:
         self.openai = AsyncOpenAI(api_key=openai_api_key)
         self.embedding_model = embedding_model
         self.collections: dict = {}
+        self.user_id = user_id
+
+    def _user_collection_name(self, base_name: str) -> str:
+        """Returns per-user collection name if user_id set, else base name."""
+        if self.user_id:
+            return f"{base_name}_{self.user_id}"
+        return base_name
 
     async def get_or_create_collection(self, name: str):
         """Get or create a ChromaDB collection."""
@@ -51,25 +58,54 @@ class KnowledgeBase:
         )
         logger.info("Added document %s to collection %s", doc_id, collection_name)
 
-    async def retrieve(
-        self, collection_name: str, query: str, n_results: int = 3
-    ) -> list[dict]:
-        """Retrieve relevant documents for a query."""
-        collection = await self.get_or_create_collection(collection_name)
+    async def retrieve(self, collection_name: str, query: str, n_results: int = 3) -> list[dict]:
+        """Retrieve relevant documents. Queries user collection first, falls back to shared."""
         query_embedding = await self.embed_text(query)
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=n_results,
-            include=["documents", "metadatas", "distances"],
-        )
-        documents = []
-        for i, doc in enumerate(results["documents"][0]):
-            documents.append(
-                {
-                    "text": doc,
-                    "metadata": results["metadatas"][0][i],
-                    "distance": results["distances"][0][i],
-                    "id": results["ids"][0][i],
-                }
+        results = []
+
+        if self.user_id:
+            # Query user-specific collection first
+            user_col_name = self._user_collection_name(collection_name)
+            try:
+                user_collection = await self.get_or_create_collection(user_col_name)
+                user_results = user_collection.query(
+                    query_embeddings=[query_embedding],
+                    n_results=n_results,
+                    include=["documents", "metadatas", "distances"],
+                )
+                for i, doc in enumerate(user_results["documents"][0]):
+                    results.append({
+                        "text": doc,
+                        "metadata": user_results["metadatas"][0][i],
+                        "distance": user_results["distances"][0][i],
+                        "id": user_results["ids"][0][i],
+                        "source": "user",
+                    })
+            except Exception:
+                pass  # User collection may be empty
+
+        # Always also query shared collection, then merge
+        try:
+            shared_collection = await self.get_or_create_collection(collection_name)
+            shared_results = shared_collection.query(
+                query_embeddings=[query_embedding],
+                n_results=n_results,
+                include=["documents", "metadatas", "distances"],
             )
-        return documents
+            seen_ids = {r["id"] for r in results}
+            for i, doc in enumerate(shared_results["documents"][0]):
+                doc_id = shared_results["ids"][0][i]
+                if doc_id not in seen_ids:
+                    results.append({
+                        "text": doc,
+                        "metadata": shared_results["metadatas"][0][i],
+                        "distance": shared_results["distances"][0][i],
+                        "id": doc_id,
+                        "source": "shared",
+                    })
+        except Exception:
+            pass
+
+        # Sort by distance (lower = more similar), return top n
+        results.sort(key=lambda x: x["distance"])
+        return results[:n_results]

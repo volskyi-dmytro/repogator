@@ -3,14 +3,14 @@ import secrets
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
 from app.auth.session import get_current_user
 from app.config import settings
-from app.db.models import TrackedRepo, User
+from app.db.models import KnowledgeDocument, TrackedRepo, User, UserSettings
 from app.db.session import AsyncSessionLocal
 from app.github.webhooks import check_repo_access, delete_webhook, install_webhook
 
@@ -52,8 +52,166 @@ async def list_repos(request: Request):
     })
 
 
+async def auto_ingest_repo_docs(repo_full_name: str, user_id: str, github_token: str) -> None:
+    """Fetch and ingest documentation files from a newly tracked repo."""
+    import asyncio
+    import hashlib
+    import uuid as _uuid
+    from datetime import datetime
+    import base64
+    import httpx
+    from app.rag.knowledge_base import KnowledgeBase
+    from app.rag.ingest import ingest_document
+    from app.config import settings as _settings
+
+    # Files to fetch with their collection types
+    target_files = [
+        ("CONTRIBUTING.md", "code_review"),
+        ("ARCHITECTURE.md", "docs"),
+        ("SECURITY.md", "code_review"),
+        ("README.md", "general"),
+    ]
+
+    # Get user settings for KB
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserSettings).where(UserSettings.user_id == user_id)
+        )
+        user_settings = result.scalar_one_or_none()
+
+    openai_key = (user_settings.openai_api_key if user_settings else None) or _settings.openai_api_key
+    embedding_model = (user_settings.openai_embedding_model if user_settings else None) or _settings.openai_embedding_model
+
+    kb = KnowledgeBase(
+        host=_settings.chromadb_host,
+        port=_settings.chromadb_port,
+        openai_api_key=openai_key,
+        embedding_model=embedding_model,
+        user_id=user_id,
+    )
+
+    headers = {"Authorization": f"token {github_token}", "Accept": "application/vnd.github.v3+json"}
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for filename, collection_type in target_files:
+            try:
+                url = f"https://api.github.com/repos/{repo_full_name}/contents/{filename}"
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 404:
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+
+                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                content_hash = hashlib.sha256(content.encode()).hexdigest()
+                html_url = data.get("html_url", url)
+
+                # Skip duplicate
+                async with AsyncSessionLocal() as session:
+                    existing = await session.execute(
+                        select(KnowledgeDocument).where(
+                            KnowledgeDocument.user_id == user_id,
+                            KnowledgeDocument.content_hash == content_hash,
+                        )
+                    )
+                    if existing.scalar_one_or_none():
+                        continue
+
+                doc_id = str(_uuid.uuid4())
+                title = f"{repo_full_name}/{filename}"
+
+                chunk_count = await ingest_document(
+                    kb=kb,
+                    content=content,
+                    user_id=user_id,
+                    collection_type=collection_type,
+                    title=title,
+                    source_type="github_auto",
+                    document_id=doc_id,
+                    metadata={"repo": repo_full_name, "filename": filename},
+                )
+
+                async with AsyncSessionLocal() as session:
+                    doc = KnowledgeDocument(
+                        id=doc_id,
+                        user_id=user_id,
+                        title=title,
+                        source_type="github_auto",
+                        source_url=html_url,
+                        filename=filename,
+                        content_hash=content_hash,
+                        chunk_count=chunk_count,
+                        collection_type=collection_type,
+                        status="ingested",
+                        last_ingested_at=datetime.utcnow(),
+                    )
+                    session.add(doc)
+                    await session.commit()
+
+                import logging as _logging
+                _logging.getLogger(__name__).info("Auto-ingested %s from %s (%d chunks)", filename, repo_full_name, chunk_count)
+
+            except Exception as e:
+                import logging as _logging
+                _logging.getLogger(__name__).warning("Failed to auto-ingest %s from %s: %s", filename, repo_full_name, str(e))
+
+            await asyncio.sleep(0.5)
+
+        # Also try docs/*.md (up to 10 files)
+        try:
+            docs_url = f"https://api.github.com/repos/{repo_full_name}/contents/docs"
+            resp = await client.get(docs_url, headers=headers)
+            if resp.status_code == 200:
+                docs_listing = resp.json()
+                md_files = [f for f in docs_listing if isinstance(f, dict) and f.get("name", "").endswith(".md")][:10]
+                for file_info in md_files:
+                    try:
+                        file_resp = await client.get(file_info["url"], headers=headers)
+                        file_resp.raise_for_status()
+                        file_data = file_resp.json()
+                        content = base64.b64decode(file_data["content"]).decode("utf-8", errors="replace")
+                        content_hash = hashlib.sha256(content.encode()).hexdigest()
+                        html_url = file_data.get("html_url", file_info["url"])
+                        filename = file_info["name"]
+
+                        async with AsyncSessionLocal() as session:
+                            existing = await session.execute(
+                                select(KnowledgeDocument).where(
+                                    KnowledgeDocument.user_id == user_id,
+                                    KnowledgeDocument.content_hash == content_hash,
+                                )
+                            )
+                            if existing.scalar_one_or_none():
+                                continue
+
+                        doc_id = str(_uuid.uuid4())
+                        title = f"{repo_full_name}/docs/{filename}"
+                        chunk_count = await ingest_document(
+                            kb=kb, content=content, user_id=user_id,
+                            collection_type="docs", title=title,
+                            source_type="github_auto", document_id=doc_id,
+                            metadata={"repo": repo_full_name, "filename": filename},
+                        )
+                        async with AsyncSessionLocal() as session:
+                            doc = KnowledgeDocument(
+                                id=doc_id, user_id=user_id, title=title,
+                                source_type="github_auto", source_url=html_url,
+                                filename=filename, content_hash=content_hash,
+                                chunk_count=chunk_count, collection_type="docs",
+                                status="ingested", last_ingested_at=datetime.utcnow(),
+                            )
+                            session.add(doc)
+                            await session.commit()
+                    except Exception as e:
+                        import logging as _logging
+                        _logging.getLogger(__name__).warning("Failed to ingest docs/%s: %s", file_info.get("name"), str(e))
+                    await asyncio.sleep(0.5)
+        except Exception:
+            pass
+
+
 @router.post("/repos")
-async def add_repo(request: Request):
+async def add_repo(request: Request, background_tasks: BackgroundTasks):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/")
@@ -105,6 +263,8 @@ async def add_repo(request: Request):
             session.add(repo)
 
         await session.commit()
+
+    background_tasks.add_task(auto_ingest_repo_docs, repo_full_name, user["user_id"], token)
 
     return RedirectResponse("/repos?success=repo_added", status_code=303)
 

@@ -1,6 +1,6 @@
 # 🐊 RepoGator
 
-RepoGator is an AI-powered GitHub automation SaaS that lets users connect their own repositories and get automated issue enrichment, pull request reviews, and documentation generation — all driven by AI agents running in the background. Users authenticate with GitHub OAuth, add repositories they own, and optionally supply their own OpenRouter/OpenAI API keys. The system installs webhooks automatically and processes events through a LangGraph orchestrator backed by a ChromaDB RAG store.
+RepoGator is an AI-powered GitHub automation SaaS that lets users connect their own repositories and get automated issue enrichment, pull request reviews, and documentation generation — all driven by AI agents running in the background. Users authenticate with GitHub OAuth, add repositories they own, and optionally supply their own OpenRouter/OpenAI API keys. The system installs webhooks automatically and processes events through a LangGraph orchestrator backed by a per-user ChromaDB RAG store.
 
 ## Architecture
 
@@ -24,22 +24,24 @@ RepoGator is an AI-powered GitHub automation SaaS that lets users connect their 
 │   (per-user keys)    │      │   GET /dashboard (authed)   │
 │                      │      │   GET /repos                 │
 │  ┌────────────────┐  │      │   GET /settings              │
-│  │Requirements    │  │      │   GET /auth/github           │
-│  │Agent (Issues)  │  │      └─────────────────────────────┘
-│  └────────────────┘  │
-│  ┌────────────────┐  │      ┌─────────────────────────────┐
-│  │Code Review     │  │      │   Infrastructure             │
-│  │Agent (PRs)     │  │      │  ├── PostgreSQL (DB)        │
-│  └────────────────┘  │      │  ├── Redis (job queue)      │
-│  ┌────────────────┐  │      │  ├── ChromaDB (RAG store)   │
-│  │Docs Agent      │  │      │  └── nginx (reverse proxy)  │
+│  │Requirements    │  │      │   GET /knowledge             │
+│  │Agent (Issues)  │  │      │   GET /auth/github           │
 │  └────────────────┘  │      └─────────────────────────────┘
-└──────────────────────┘
+│  ┌────────────────┐  │
+│  │Code Review     │  │      ┌─────────────────────────────┐
+│  │Agent (PRs)     │  │      │   Infrastructure             │
+│  └────────────────┘  │      │  ├── PostgreSQL (DB)        │
+│  ┌────────────────┐  │      │  ├── Redis (job queue)      │
+│  │Docs Agent      │  │      │  ├── ChromaDB (per-user)    │
+│  └────────────────┘  │      │  └── nginx (reverse proxy)  │
+└──────────────────────┘      └─────────────────────────────┘
 ```
 
 ## What It Does
 
-Users sign in with their GitHub account via OAuth. After login they can add any repo they have access to — RepoGator auto-installs the webhook on GitHub (scoped to issues and pull_request events) with a unique HMAC secret per repo. When events arrive, the LangGraph orchestrator dispatches the right agent: the Requirements Agent enriches issues with acceptance criteria and complexity estimates, the Code Review Agent reviews PRs against codebase conventions from the RAG store, and the Docs Agent generates context-aware documentation summaries. All output is posted back to GitHub as structured comments.
+Users sign in with their GitHub account via OAuth (minimal `read:user user:email` scope — no scary full-repo permissions dialog). After login they can add any repo they have access to — at that point RepoGator requests `write:repo_hook` scope via incremental authorization, then auto-installs the webhook on GitHub (scoped to issues and pull_request events) with a unique HMAC secret per repo. When events arrive, the LangGraph orchestrator dispatches the right agent: the Requirements Agent enriches issues with acceptance criteria and complexity estimates, the Code Review Agent reviews PRs against codebase conventions from the RAG store, and the Docs Agent generates context-aware documentation summaries. All output is posted back to GitHub as structured comments.
+
+Each user has their own knowledge base in ChromaDB. Agents query the user's collection first and fall back to the shared default collection if the user's KB is empty or low-confidence. When a repo is added, RepoGator automatically ingests its documentation files (CONTRIBUTING.md, ARCHITECTURE.md, SECURITY.md, README.md, docs/*.md) into the user's knowledge base in the background.
 
 Users can supply their own OpenRouter and OpenAI API keys in the Settings page so agent calls are billed to their own accounts. If no keys are provided, the system falls back to the admin keys.
 
@@ -48,13 +50,13 @@ Users can supply their own OpenRouter and OpenAI API keys in the Settings page s
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | API Server | FastAPI + Uvicorn | Webhook receiver, web UI, health checks |
-| Auth | GitHub OAuth + itsdangerous | Signed session cookies, no JWT needed |
+| Auth | GitHub OAuth + itsdangerous | Signed session cookies, incremental scope |
 | Orchestration | LangGraph | Stateful multi-agent workflow |
 | LLM | OpenRouter (Claude 3.5 Sonnet) | Agent reasoning and structured output |
 | Embeddings | OpenAI text-embedding-3-small | RAG vector search |
-| Vector Store | ChromaDB | RAG knowledge base for agents |
+| Vector Store | ChromaDB | Per-user RAG knowledge base with shared fallback |
 | Job Queue | Redis | Async webhook event processing |
-| Database | PostgreSQL + SQLAlchemy | Users, repos, events, audit log |
+| Database | PostgreSQL + SQLAlchemy | Users, repos, events, knowledge docs, audit log |
 | Reverse Proxy | nginx | Reverse proxy, SSL via Cloudflare origin cert |
 | Containerization | Docker + Docker Compose | Local dev and production deployment |
 | CI/CD | GitHub Actions | Automated test, build, deploy |
@@ -72,7 +74,7 @@ cp .env.example .env
 # 3. Start all services
 docker compose up -d
 
-# 4. Ingest the knowledge base into ChromaDB (one-time)
+# 4. Ingest the shared knowledge base into ChromaDB (one-time)
 docker exec repogator-app python -m scripts.ingest_knowledge_base
 
 # 5. Verify the app is running
@@ -105,7 +107,8 @@ curl http://localhost:8000/health
 
 1. Go to **github.com → Settings → Developer settings → OAuth Apps → New OAuth App**
 2. Set **Authorization callback URL** to `https://your-domain/auth/callback`
-3. Copy the **Client ID** (starts with `Ov23li...`) and a generated **Client Secret** into your `.env`
+3. Set **Additional callback URL** to `https://your-domain/auth/expand-callback` (for incremental scope)
+4. Copy the **Client ID** (starts with `Ov23li...`) and a generated **Client Secret** into your `.env`
 
 > Note: The Client ID starts with the letter **O** (not the digit 0). They look identical in some fonts.
 
@@ -127,10 +130,22 @@ Webhook events follow this lifecycle:
 
 1. `POST /webhook/{owner}/{repo}` — per-repo HMAC signature verified, event persisted with `status=received`, pushed to Redis queue along with the user's API keys
 2. Queue worker pops the event, dispatches through LangGraph orchestrator using the user's keys (falls back to admin keys if unset)
-3. The appropriate agent processes the event and posts a comment back to GitHub
-4. DB record updated to `status=completed` or `status=failed`
+3. The appropriate agent processes the event, querying the user's ChromaDB collection first (falls back to shared collection)
+4. Agent posts a comment back to GitHub, DB record updated to `status=completed` or `status=failed`
 
 On container restart, events with `status=received` are automatically re-queued so no events are lost between deployments.
+
+## Knowledge Base
+
+Each user has isolated knowledge base collections in ChromaDB. Agents query the user's collection first; if confidence is low, they merge results from the shared default collection as a fallback.
+
+Users manage their knowledge base at `/knowledge`:
+
+- **Upload files** — `.md`, `.txt`, or `.pdf` (max 10 MB), assigned to a collection type (Requirements / Code Review / Documentation / General)
+- **Index a URL** — paste any public URL; RepoGator fetches and indexes the content (max 500 KB)
+- **Auto-ingestion** — when a repo is added, RepoGator automatically fetches and indexes `CONTRIBUTING.md`, `ARCHITECTURE.md`, `SECURITY.md`, `README.md`, and `docs/*.md` from that repo in the background
+
+Collection types map to agent usage: `requirements` → Requirements Agent, `code_review` → Code Review Agent, `docs` → Docs Agent, `general` → all agents.
 
 ## API Endpoints
 
@@ -139,12 +154,19 @@ On container restart, events with `status=received` are automatically re-queued 
 | `GET` | `/` | None | Landing page |
 | `GET` | `/dashboard` | Session | Event feed and stats for user's repos |
 | `GET` | `/repos` | Session | List tracked repositories |
-| `POST` | `/repos` | Session | Add repo (auto-installs GitHub webhook) |
+| `POST` | `/repos` | Session | Add repo (triggers incremental OAuth → installs webhook → auto-ingests docs) |
 | `POST` | `/repos/{id}/delete` | Session | Remove repo and delete its webhook |
 | `GET` | `/settings` | Session | View/edit API key configuration |
 | `POST` | `/settings` | Session | Save API keys and model preferences |
-| `GET` | `/auth/github` | None | Redirect to GitHub OAuth |
+| `GET` | `/knowledge` | Session | Knowledge base management page |
+| `GET` | `/knowledge/list` | Session | List user's knowledge documents (JSON) |
+| `POST` | `/knowledge/upload` | Session | Upload and index a file |
+| `POST` | `/knowledge/url` | Session | Fetch and index a URL |
+| `DELETE` | `/knowledge/{id}` | Session | Delete a knowledge document |
+| `GET` | `/auth/github` | None | Redirect to GitHub OAuth (minimal scope) |
 | `GET` | `/auth/callback` | None | OAuth callback — sets session, redirects to dashboard |
+| `GET` | `/auth/expand-scope` | None | Re-initiate OAuth with `write:repo_hook` scope |
+| `GET` | `/auth/expand-callback` | None | Expanded-scope callback — updates token, resumes repo add |
 | `GET` | `/auth/logout` | None | Clear session, redirect to landing |
 | `POST` | `/webhook/{owner}/{repo}` | HMAC | Per-repo webhook endpoint |
 | `POST` | `/webhook` | HMAC | Legacy webhook endpoint (global secret) |

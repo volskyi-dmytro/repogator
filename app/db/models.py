@@ -147,3 +147,27 @@ class UserSettings(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
     )
+
+
+class KnowledgeDocument(Base):
+    """Tracks documents ingested into a user's knowledge base."""
+
+    __tablename__ = "knowledge_documents"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(500))
+    source_type: Mapped[str] = mapped_column(String(50))  # "upload" | "url" | "github_auto"
+    source_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    filename: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    chunk_count: Mapped[int] = mapped_column(default=0)
+    collection_type: Mapped[str] = mapped_column(String(50))
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_ingested_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

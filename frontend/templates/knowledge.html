@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — Knowledge Base</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0f172a; }
+    .card { background: #1e293b; border: 1px solid #334155; }
+    .badge { background: #1e3a5f; color: #93c5fd; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
+    .status-badge-ingested { background: #14532d; color: #86efac; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
+    .status-badge-pending { background: #422006; color: #fde68a; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
+    .status-badge-failed { background: #450a0a; color: #fca5a5; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-700 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard" class="text-2xl font-bold tracking-tight">&#x1F40A; {{ app_name }}</a>
+      </div>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="/dashboard" class="text-slate-400 hover:text-white transition-colors">Dashboard</a>
+        <a href="/repos" class="text-slate-400 hover:text-white transition-colors">My Repos</a>
+        <a href="/knowledge" class="text-white font-medium">Knowledge Base</a>
+        <a href="/settings" class="text-slate-400 hover:text-white transition-colors">Settings</a>
+        <a href="/auth/logout" class="text-slate-400 hover:text-white transition-colors">Logout</a>
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700">
+          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full" />
+          <span class="text-slate-300 text-sm">{{ user.github_login }}</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <h1 class="text-2xl font-bold">Knowledge Base</h1>
+
+    <!-- Add Document -->
+    <div class="card rounded-xl p-6">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Add Document</h2>
+
+      <!-- Tab Bar -->
+      <div class="flex gap-4 border-b border-slate-700 mb-4">
+        <button id="btn-upload-tab" onclick="switchTab('upload')" class="text-white font-medium pb-2 border-b-2 border-blue-500 text-sm transition-colors">Upload File</button>
+        <button id="btn-url-tab" onclick="switchTab('url')" class="text-slate-400 pb-2 border-b-2 border-transparent text-sm transition-colors">Add URL</button>
+      </div>
+
+      <!-- Upload File Tab -->
+      <div id="tab-upload">
+        <form id="upload-form" class="flex flex-col gap-3">
+          <div class="flex gap-3">
+            <input type="file" name="file" accept=".md,.txt,.pdf"
+                   class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-slate-700 file:text-slate-300 hover:file:bg-slate-600" required />
+            <select name="collection_type" class="bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="requirements">Requirements</option>
+              <option value="code_review">Code Review</option>
+              <option value="docs">Documentation</option>
+              <option value="general">General</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2 rounded-lg text-sm transition-colors">Upload</button>
+          </div>
+          <div id="upload-status" class="hidden text-sm"></div>
+        </form>
+      </div>
+
+      <!-- Add URL Tab -->
+      <div id="tab-url" class="hidden">
+        <form id="url-form" class="flex flex-col gap-3">
+          <div class="flex gap-3">
+            <input type="url" id="url-input" placeholder="https://example.com/docs/guide"
+                   class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" required />
+            <select id="url-collection" class="bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+              <option value="requirements">Requirements</option>
+              <option value="code_review">Code Review</option>
+              <option value="docs">Documentation</option>
+              <option value="general">General</option>
+            </select>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2 rounded-lg text-sm transition-colors whitespace-nowrap">Fetch &amp; Index</button>
+          </div>
+          <div id="url-status" class="hidden text-sm"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- My Documents -->
+    <section>
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">My Documents</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-700 text-left">
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Title</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Collection</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Source</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chunks</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Added</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="my-docs-tbody" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+        <div id="my-docs-empty" class="hidden px-4 py-12 text-center text-slate-500 text-sm">
+          No documents yet. Add files or URLs above to teach RepoGator your team's standards.
+        </div>
+      </div>
+    </section>
+
+    <!-- Auto-ingested from Repos -->
+    <section>
+      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Auto-ingested from Repos</h2>
+      <div class="card rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-700 text-left">
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Title</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Repo</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Collection</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chunks</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Added</th>
+              </tr>
+            </thead>
+            <tbody id="auto-docs-tbody" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+        <div id="auto-docs-empty" class="hidden px-4 py-12 text-center text-slate-500 text-sm">
+          No auto-ingested docs yet. Add a repo to trigger automatic documentation indexing.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-slate-700/50 mt-16 px-6 py-5">
+    <div class="max-w-7xl mx-auto text-center text-xs text-slate-500">
+      Powered by LangGraph + FastAPI
+    </div>
+  </footer>
+
+  <script>
+    const COLLECTION_LABELS = {
+      requirements: 'Requirements',
+      code_review: 'Code Review',
+      docs: 'Documentation',
+      general: 'General'
+    };
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function loadDocs() {
+      const res = await fetch('/knowledge/list');
+      const docs = await res.json();
+
+      const myDocs = docs.filter(d => d.source_type !== 'github_auto');
+      const autoDocs = docs.filter(d => d.source_type === 'github_auto');
+
+      renderMyDocs(myDocs);
+      renderAutoDocs(autoDocs);
+    }
+
+    function renderMyDocs(docs) {
+      const tbody = document.getElementById('my-docs-tbody');
+      const emptyState = document.getElementById('my-docs-empty');
+      if (docs.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = docs.map(d => `
+        <tr class="border-b border-slate-700 hover:bg-slate-700/30">
+          <td class="px-4 py-3 text-slate-200">${escapeHtml(d.title)}</td>
+          <td class="px-4 py-3"><span class="badge">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
+          <td class="px-4 py-3 text-slate-400 text-sm">${d.source_type === 'url' ? 'URL' : 'Upload'}</td>
+          <td class="px-4 py-3 text-slate-300">${d.chunk_count}</td>
+          <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
+          <td class="px-4 py-3 text-slate-400 text-sm">${d.created_at}</td>
+          <td class="px-4 py-3">
+            <button onclick="deleteDoc('${d.id}')" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded border border-red-800 hover:border-red-600 transition-colors">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAutoDocs(docs) {
+      const tbody = document.getElementById('auto-docs-tbody');
+      const emptyState = document.getElementById('auto-docs-empty');
+      if (docs.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = docs.map(d => {
+        const repoMatch = d.source_url ? d.source_url.match(/github\.com\/([^/]+\/[^/]+)/) : null;
+        const repoName = repoMatch ? repoMatch[1] : (d.source_url || '\u2014');
+        return `
+          <tr class="border-b border-slate-700 hover:bg-slate-700/30">
+            <td class="px-4 py-3 text-slate-200">${escapeHtml(d.title)}</td>
+            <td class="px-4 py-3 text-slate-400 text-sm">${escapeHtml(repoName)}</td>
+            <td class="px-4 py-3"><span class="badge">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
+            <td class="px-4 py-3 text-slate-300">${d.chunk_count}</td>
+            <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
+            <td class="px-4 py-3 text-slate-400 text-sm">${d.created_at}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function deleteDoc(docId) {
+      if (!confirm('Delete this document from your knowledge base?')) return;
+      const res = await fetch(`/knowledge/${docId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) loadDocs();
+      else alert('Delete failed: ' + (data.error || 'Unknown error'));
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-upload').classList.toggle('hidden', tab !== 'upload');
+      document.getElementById('tab-url').classList.toggle('hidden', tab !== 'url');
+      document.getElementById('btn-upload-tab').classList.toggle('text-white', tab === 'upload');
+      document.getElementById('btn-upload-tab').classList.toggle('text-slate-400', tab !== 'upload');
+      document.getElementById('btn-upload-tab').classList.toggle('border-blue-500', tab === 'upload');
+      document.getElementById('btn-upload-tab').classList.toggle('border-transparent', tab !== 'upload');
+      document.getElementById('btn-url-tab').classList.toggle('text-white', tab === 'url');
+      document.getElementById('btn-url-tab').classList.toggle('text-slate-400', tab !== 'url');
+      document.getElementById('btn-url-tab').classList.toggle('border-blue-500', tab === 'url');
+      document.getElementById('btn-url-tab').classList.toggle('border-transparent', tab !== 'url');
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('upload-status');
+      status.textContent = 'Uploading...';
+      status.className = 'text-slate-400 text-sm mt-2';
+      status.classList.remove('hidden');
+
+      const formData = new FormData(e.target);
+      try {
+        const res = await fetch('/knowledge/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          status.textContent = '\u2713 Indexed ' + data.chunk_count + ' chunks';
+          status.className = 'text-emerald-400 text-sm mt-2';
+          e.target.reset();
+          loadDocs();
+        } else {
+          status.textContent = '\u2717 ' + (data.error || 'Upload failed');
+          status.className = 'text-red-400 text-sm mt-2';
+        }
+      } catch (err) {
+        status.textContent = '\u2717 Network error';
+        status.className = 'text-red-400 text-sm mt-2';
+      }
+    });
+
+    document.getElementById('url-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('url-status');
+      status.textContent = 'Fetching and indexing...';
+      status.className = 'text-slate-400 text-sm mt-2';
+      status.classList.remove('hidden');
+
+      const url = document.getElementById('url-input').value;
+      const collection_type = document.getElementById('url-collection').value;
+      try {
+        const res = await fetch('/knowledge/url', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ url, collection_type })
+        });
+        const data = await res.json();
+        if (data.success) {
+          status.textContent = '\u2713 Indexed ' + data.chunk_count + ' chunks';
+          status.className = 'text-emerald-400 text-sm mt-2';
+          e.target.reset();
+          loadDocs();
+        } else {
+          status.textContent = '\u2717 ' + (data.error || 'Failed');
+          status.className = 'text-red-400 text-sm mt-2';
+        }
+      } catch (err) {
+        status.textContent = '\u2717 Network error';
+        status.className = 'text-red-400 text-sm mt-2';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadDocs);
+  </script>
+
+</body>
+</html>
