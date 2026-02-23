@@ -4,32 +4,68 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ app_name }} — Knowledge Base</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png" />
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    body { background-color: #0f172a; }
-    .card { background: #1e293b; border: 1px solid #334155; }
-    .badge { background: #1e3a5f; color: #93c5fd; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
-    .status-badge-ingested { background: #14532d; color: #86efac; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
-    .status-badge-pending { background: #422006; color: #fde68a; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
-    .status-badge-failed { background: #450a0a; color: #fca5a5; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; }
+    body {
+      background-color: #0a0f1e;
+      background-image: radial-gradient(circle, rgba(0,212,255,0.12) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .glass-card {
+      background: rgba(10,15,30,0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 12px;
+    }
+    .glass-header {
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(0,212,255,0.1);
+    }
+    .badge-collection { background: rgba(0,212,255,0.1); color: #00d4ff; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,212,255,0.3); }
+    .status-badge-ingested { background: rgba(0,255,136,0.1); color: #00ff88; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,255,136,0.3); }
+    .status-badge-pending { background: rgba(245,158,11,0.1); color: #f59e0b; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245,158,11,0.3); }
+    .status-badge-failed { background: rgba(239,68,68,0.1); color: #f87171; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.3); }
   </style>
 </head>
 <body class="min-h-screen text-slate-100 font-sans">
 
   <!-- Header -->
-  <header class="border-b border-slate-700 px-6 py-4">
+  <header class="glass-header px-6 py-4 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <a href="/dashboard" class="text-2xl font-bold tracking-tight">&#x1F40A; {{ app_name }}</a>
+        <a href="/dashboard" class="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <img src="/static/favicon-32x32.png" class="w-8 h-8" alt="logo" />
+          <span class="text-white">{{ app_name }}</span>
+        </a>
       </div>
       <nav class="flex items-center gap-6 text-sm">
-        <a href="/dashboard" class="text-slate-400 hover:text-white transition-colors">Dashboard</a>
-        <a href="/repos" class="text-slate-400 hover:text-white transition-colors">My Repos</a>
-        <a href="/knowledge" class="text-white font-medium">Knowledge Base</a>
-        <a href="/settings" class="text-slate-400 hover:text-white transition-colors">Settings</a>
-        <a href="/auth/logout" class="text-slate-400 hover:text-white transition-colors">Logout</a>
-        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700">
-          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full" />
+        <a href="/dashboard" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Dashboard</a>
+        <a href="/repos" class="text-slate-400 hover:text-[#00d4ff] transition-colors">My Repos</a>
+        <a href="/knowledge" class="text-[#00d4ff] font-medium border-b-2 border-[#00d4ff] pb-0.5">Knowledge Base</a>
+        <a href="/settings" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Settings</a>
+        <a href="/auth/logout" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Logout</a>
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700/50">
+          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full ring-2 ring-[#00d4ff]/30" />
           <span class="text-slate-300 text-sm">{{ user.github_login }}</span>
         </div>
       </nav>
@@ -38,16 +74,16 @@
 
   <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
-    <h1 class="text-2xl font-bold">Knowledge Base</h1>
+    <h1 class="text-2xl font-bold text-white">Knowledge Base</h1>
 
     <!-- Add Document -->
-    <div class="card rounded-xl p-6">
-      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Add Document</h2>
+    <div class="glass-card p-6">
+      <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-[#00d4ff]/60 mb-4">Add Document</h2>
 
       <!-- Tab Bar -->
-      <div class="flex gap-4 border-b border-slate-700 mb-4">
-        <button id="btn-upload-tab" onclick="switchTab('upload')" class="text-white font-medium pb-2 border-b-2 border-blue-500 text-sm transition-colors">Upload File</button>
-        <button id="btn-url-tab" onclick="switchTab('url')" class="text-slate-400 pb-2 border-b-2 border-transparent text-sm transition-colors">Add URL</button>
+      <div class="flex gap-4 border-b border-[#00d4ff]/10 mb-4">
+        <button id="btn-upload-tab" onclick="switchTab('upload')" class="text-[#00d4ff] font-medium pb-2 border-b-2 border-[#00d4ff] text-sm transition-colors">Upload File</button>
+        <button id="btn-url-tab" onclick="switchTab('url')" class="text-slate-400 pb-2 border-b-2 border-transparent text-sm transition-colors hover:text-[#00d4ff]">Add URL</button>
       </div>
 
       <!-- Upload File Tab -->
@@ -55,14 +91,14 @@
         <form id="upload-form" class="flex flex-col gap-3">
           <div class="flex gap-3">
             <input type="file" name="file" accept=".md,.txt,.pdf"
-                   class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-slate-700 file:text-slate-300 hover:file:bg-slate-600" required />
-            <select name="collection_type" class="bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                   class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-[#00d4ff]/10 file:text-[#00d4ff] hover:file:bg-[#00d4ff]/20 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30" required />
+            <select name="collection_type" class="bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30">
               <option value="requirements">Requirements</option>
               <option value="code_review">Code Review</option>
               <option value="docs">Documentation</option>
               <option value="general">General</option>
             </select>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2 rounded-lg text-sm transition-colors">Upload</button>
+            <button type="submit" class="bg-[#00d4ff] text-[#0a0f1e] font-bold px-6 py-2 rounded-lg text-sm transition-all hover:shadow-[0_0_20px_rgba(0,212,255,0.5)]">Upload</button>
           </div>
           <div id="upload-status" class="hidden text-sm"></div>
         </form>
@@ -73,14 +109,14 @@
         <form id="url-form" class="flex flex-col gap-3">
           <div class="flex gap-3">
             <input type="url" id="url-input" placeholder="https://example.com/docs/guide"
-                   class="flex-1 bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500" required />
-            <select id="url-collection" class="bg-slate-800 border border-slate-600 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                   class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30 font-mono" required />
+            <select id="url-collection" class="bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30">
               <option value="requirements">Requirements</option>
               <option value="code_review">Code Review</option>
               <option value="docs">Documentation</option>
               <option value="general">General</option>
             </select>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-6 py-2 rounded-lg text-sm transition-colors whitespace-nowrap">Fetch &amp; Index</button>
+            <button type="submit" class="bg-[#00d4ff] text-[#0a0f1e] font-bold px-6 py-2 rounded-lg text-sm transition-all hover:shadow-[0_0_20px_rgba(0,212,255,0.5)] whitespace-nowrap">Fetch &amp; Index</button>
           </div>
           <div id="url-status" class="hidden text-sm"></div>
         </form>
@@ -89,22 +125,22 @@
 
     <!-- My Documents -->
     <section>
-      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">My Documents</h2>
-      <div class="card rounded-xl overflow-hidden">
+      <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-[#00d4ff]/60 mb-4">My Documents</h2>
+      <div class="glass-card overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-700 text-left">
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Title</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Collection</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Source</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chunks</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Added</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+              <tr class="border-b border-[#00d4ff]/10 text-left">
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Title</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Collection</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Source</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Chunks</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Added</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody id="my-docs-tbody" class="divide-y divide-slate-700/50"></tbody>
+            <tbody id="my-docs-tbody" class="divide-y divide-white/5"></tbody>
           </table>
         </div>
         <div id="my-docs-empty" class="hidden px-4 py-12 text-center text-slate-500 text-sm">
@@ -115,21 +151,21 @@
 
     <!-- Auto-ingested from Repos -->
     <section>
-      <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">Auto-ingested from Repos</h2>
-      <div class="card rounded-xl overflow-hidden">
+      <h2 class="text-xs font-semibold uppercase tracking-[0.2em] text-[#00d4ff]/60 mb-4">Auto-ingested from Repos</h2>
+      <div class="glass-card overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-slate-700 text-left">
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Title</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Repo</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Collection</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chunks</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                <th class="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Added</th>
+              <tr class="border-b border-[#00d4ff]/10 text-left">
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Title</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Repo</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Collection</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Chunks</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Added</th>
               </tr>
             </thead>
-            <tbody id="auto-docs-tbody" class="divide-y divide-slate-700/50"></tbody>
+            <tbody id="auto-docs-tbody" class="divide-y divide-white/5"></tbody>
           </table>
         </div>
         <div id="auto-docs-empty" class="hidden px-4 py-12 text-center text-slate-500 text-sm">
@@ -140,7 +176,7 @@
 
   </main>
 
-  <footer class="border-t border-slate-700/50 mt-16 px-6 py-5">
+  <footer class="border-t border-[#00d4ff]/10 mt-16 px-6 py-5">
     <div class="max-w-7xl mx-auto text-center text-xs text-slate-500">
       Powered by LangGraph + FastAPI
     </div>
@@ -179,15 +215,15 @@
       }
       emptyState.classList.add('hidden');
       tbody.innerHTML = docs.map(d => `
-        <tr class="border-b border-slate-700 hover:bg-slate-700/30">
+        <tr class="hover:bg-white/5 hover:border-l-2 hover:border-l-[#00d4ff] transition-colors">
           <td class="px-4 py-3 text-slate-200">${escapeHtml(d.title)}</td>
-          <td class="px-4 py-3"><span class="badge">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
+          <td class="px-4 py-3"><span class="badge-collection">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
           <td class="px-4 py-3 text-slate-400 text-sm">${d.source_type === 'url' ? 'URL' : 'Upload'}</td>
           <td class="px-4 py-3 text-slate-300">${d.chunk_count}</td>
           <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
-          <td class="px-4 py-3 text-slate-400 text-sm">${d.created_at}</td>
+          <td class="px-4 py-3 text-slate-400 text-sm font-mono">${d.created_at}</td>
           <td class="px-4 py-3">
-            <button onclick="deleteDoc('${d.id}')" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded border border-red-800 hover:border-red-600 transition-colors">Delete</button>
+            <button onclick="deleteDoc('${d.id}')" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 text-sm px-3 py-1 rounded-lg transition-colors">Delete</button>
           </td>
         </tr>
       `).join('');
@@ -206,13 +242,13 @@
         const repoMatch = d.source_url ? d.source_url.match(/github\.com\/([^/]+\/[^/]+)/) : null;
         const repoName = repoMatch ? repoMatch[1] : (d.source_url || '\u2014');
         return `
-          <tr class="border-b border-slate-700 hover:bg-slate-700/30">
+          <tr class="hover:bg-white/5 hover:border-l-2 hover:border-l-[#00d4ff] transition-colors">
             <td class="px-4 py-3 text-slate-200">${escapeHtml(d.title)}</td>
             <td class="px-4 py-3 text-slate-400 text-sm">${escapeHtml(repoName)}</td>
-            <td class="px-4 py-3"><span class="badge">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
+            <td class="px-4 py-3"><span class="badge-collection">${COLLECTION_LABELS[d.collection_type] || d.collection_type}</span></td>
             <td class="px-4 py-3 text-slate-300">${d.chunk_count}</td>
             <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
-            <td class="px-4 py-3 text-slate-400 text-sm">${d.created_at}</td>
+            <td class="px-4 py-3 text-slate-400 text-sm font-mono">${d.created_at}</td>
           </tr>
         `;
       }).join('');
@@ -229,13 +265,13 @@
     function switchTab(tab) {
       document.getElementById('tab-upload').classList.toggle('hidden', tab !== 'upload');
       document.getElementById('tab-url').classList.toggle('hidden', tab !== 'url');
-      document.getElementById('btn-upload-tab').classList.toggle('text-white', tab === 'upload');
+      document.getElementById('btn-upload-tab').classList.toggle('text-[#00d4ff]', tab === 'upload');
       document.getElementById('btn-upload-tab').classList.toggle('text-slate-400', tab !== 'upload');
-      document.getElementById('btn-upload-tab').classList.toggle('border-blue-500', tab === 'upload');
+      document.getElementById('btn-upload-tab').classList.toggle('border-[#00d4ff]', tab === 'upload');
       document.getElementById('btn-upload-tab').classList.toggle('border-transparent', tab !== 'upload');
-      document.getElementById('btn-url-tab').classList.toggle('text-white', tab === 'url');
+      document.getElementById('btn-url-tab').classList.toggle('text-[#00d4ff]', tab === 'url');
       document.getElementById('btn-url-tab').classList.toggle('text-slate-400', tab !== 'url');
-      document.getElementById('btn-url-tab').classList.toggle('border-blue-500', tab === 'url');
+      document.getElementById('btn-url-tab').classList.toggle('border-[#00d4ff]', tab === 'url');
       document.getElementById('btn-url-tab').classList.toggle('border-transparent', tab !== 'url');
     }
 
@@ -252,7 +288,7 @@
         const data = await res.json();
         if (data.success) {
           status.textContent = '\u2713 Indexed ' + data.chunk_count + ' chunks';
-          status.className = 'text-emerald-400 text-sm mt-2';
+          status.className = 'text-[#00ff88] text-sm mt-2';
           e.target.reset();
           loadDocs();
         } else {
@@ -283,7 +319,7 @@
         const data = await res.json();
         if (data.success) {
           status.textContent = '\u2713 Indexed ' + data.chunk_count + ' chunks';
-          status.className = 'text-emerald-400 text-sm mt-2';
+          status.className = 'text-[#00ff88] text-sm mt-2';
           e.target.reset();
           loadDocs();
         } else {

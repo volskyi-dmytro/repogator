@@ -220,3 +220,5 @@ app.include_router(auth_router, prefix="", tags=["auth"])
 app.include_router(repos_router, prefix="", tags=["repos"])
 app.include_router(settings_router, prefix="", tags=["settings"])
 app.include_router(knowledge_router, prefix="", tags=["knowledge"])
+
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
