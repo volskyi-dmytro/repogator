@@ -12,7 +12,7 @@ from sqlalchemy import select as sa_select
 from app.config import settings
 from app.core.logging import get_logger
 from app.core.queue import RedisQueue
-from app.db.models import TrackedRepo, UserSettings, WebhookEvent
+from app.db.models import TrackedRepo, User, UserSettings, WebhookEvent
 from app.db.session import AsyncSessionLocal
 
 logger = get_logger(__name__)
@@ -115,6 +115,16 @@ async def handle_per_repo_webhook(
             user_openrouter_model = user_settings.openrouter_model
             user_openai_embedding_model = user_settings.openai_embedding_model
 
+    # Fetch user is_admin flag
+    user_is_admin = False
+    async with AsyncSessionLocal() as session:
+        user_result = await session.execute(
+            sa_select(User).where(User.id == tracked.user_id)
+        )
+        user_obj = user_result.scalar_one_or_none()
+        if user_obj:
+            user_is_admin = user_obj.is_admin
+
     # Persist WebhookEvent
     async with AsyncSessionLocal() as session:
         event = WebhookEvent(
@@ -142,6 +152,7 @@ async def handle_per_repo_webhook(
         "user_openai_key": user_openai_key,
         "user_openrouter_model": user_openrouter_model,
         "user_openai_embedding_model": user_openai_embedding_model,
+        "user_is_admin": user_is_admin,
     }
     await _queue.push_event(queue_payload)
 

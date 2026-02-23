@@ -51,28 +51,38 @@ async def _dispatch_event(event: dict) -> None:
         user_openai_key = event.get("user_openai_key")
         user_openrouter_model = event.get("user_openrouter_model")
         user_openai_embedding_model = event.get("user_openai_embedding_model")
+        user_is_admin = event.get("user_is_admin", False)
+
+        # Resolve API keys — admin can fall back to system keys, others cannot
+        openrouter_api_key = user_openrouter_key or (settings.openrouter_api_key if user_is_admin else None)
+        openai_api_key = user_openai_key or (settings.openai_api_key if user_is_admin else None)
+
+        if not openrouter_api_key:
+            raise ValueError("No OpenRouter API key configured. Please add your API key in Settings.")
+        if not openai_api_key:
+            raise ValueError("No OpenAI API key configured. Please add your API key in Settings.")
 
         kb = KnowledgeBase(
             host=settings.chromadb_host,
             port=settings.chromadb_port,
-            openai_api_key=user_openai_key or settings.openai_api_key,
+            openai_api_key=openai_api_key,
             embedding_model=user_openai_embedding_model or settings.openai_embedding_model,
             user_id=event.get("user_id"),
         )
         github_client = GitHubClient(token=settings.github_token)
         requirements_agent = RequirementsAgent(
             knowledge_base=kb,
-            openrouter_api_key=user_openrouter_key,
+            openrouter_api_key=openrouter_api_key,
             openrouter_model=user_openrouter_model,
         )
         code_review_agent = CodeReviewAgent(
             github_client=github_client,
-            openrouter_api_key=user_openrouter_key,
+            openrouter_api_key=openrouter_api_key,
             openrouter_model=user_openrouter_model,
         )
         docs_agent = DocsAgent(
             knowledge_base=kb,
-            openrouter_api_key=user_openrouter_key,
+            openrouter_api_key=openrouter_api_key,
             openrouter_model=user_openrouter_model,
         )
 

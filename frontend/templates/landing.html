@@ -110,6 +110,16 @@
     .footer-glow {
       text-shadow: 0 0 10px rgba(0,212,255,0.3);
     }
+
+    /* Hero stock background */
+    .hero-section {
+      background-image:
+        linear-gradient(to bottom, rgba(10,15,30,0.93) 0%, rgba(10,15,30,0.88) 60%, rgba(10,15,30,0.97) 100%),
+        url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
   </style>
 </head>
 <body class="min-h-screen text-slate-100">
@@ -120,7 +130,7 @@
   <header class="glass-header sticky top-0 z-50 px-6 py-4">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <img src="/static/favicon-32x32.png" class="w-8 h-8" alt="RepoGator logo">
+        <img src="/static/logo-128.png" class="w-10 h-10 object-contain" alt="RepoGator logo">
         <span class="text-2xl font-bold tracking-tight">{{ app_name }}</span>
       </div>
       <a href="/auth/github"
@@ -136,7 +146,7 @@
   <main class="relative z-10 max-w-7xl mx-auto px-6">
 
     <!-- Hero -->
-    <section class="py-28 text-center">
+    <section class="py-28 text-center hero-section">
       <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 gradient-text">
         AI-powered SDLC automation<br/>for your GitHub repos
       </h1>

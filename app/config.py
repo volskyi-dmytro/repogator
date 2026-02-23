@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # App base URL (for webhook callbacks)
     app_base_url: str = "https://repogator.gojoble.online"
 
+    # Admin
+    admin_email: str = "volskyi.dmytro@gmail.com"
+
     # Queue
     webhook_queue_name: str = "repogator:webhook_events"
 

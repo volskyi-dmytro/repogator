@@ -47,13 +47,26 @@ async def github_callback(request: Request, code: str = "", error: str = ""):
     if not access_token:
         return RedirectResponse("/?error=no_token")
 
-    # Fetch GitHub user info
+    # Fetch GitHub user info and emails
     async with httpx.AsyncClient() as client:
         user_resp = await client.get(
             GITHUB_USER_URL,
             headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
         )
         gh_user = user_resp.json()
+
+        emails_resp = await client.get(
+            "https://api.github.com/user/emails",
+            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+        )
+        emails_data = emails_resp.json()
+
+    # Find primary verified email
+    github_email = next(
+        (e["email"] for e in emails_data if e.get("primary") and e.get("verified")),
+        None
+    )
+    is_admin = github_email == settings.admin_email
 
     github_user_id = gh_user.get("id")
     github_login = gh_user.get("login", "")
@@ -73,6 +86,8 @@ async def github_callback(request: Request, code: str = "", error: str = ""):
             user.github_login = github_login
             user.github_avatar_url = github_avatar_url
             user.github_access_token = access_token
+            user.github_email = github_email
+            user.is_admin = is_admin
             user.last_login_at = datetime.utcnow()
         else:
             user = User(
@@ -81,6 +96,8 @@ async def github_callback(request: Request, code: str = "", error: str = ""):
                 github_login=github_login,
                 github_avatar_url=github_avatar_url,
                 github_access_token=access_token,
+                github_email=github_email,
+                is_admin=is_admin,
             )
             session.add(user)
             await session.flush()
@@ -102,6 +119,7 @@ async def github_callback(request: Request, code: str = "", error: str = ""):
         "github_login": github_login,
         "github_avatar_url": github_avatar_url,
         "github_access_token": access_token,
+        "is_admin": is_admin,
     })
     return response
 
