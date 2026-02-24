@@ -10,6 +10,7 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379")
 os.environ.setdefault("OPENROUTER_API_KEY", "test-key")
 os.environ.setdefault("OPENAI_API_KEY", "test-key")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-secret-key-for-testing-only")
+os.environ.setdefault("APP_BASE_URL", "http://localhost:8000")
 
 from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
