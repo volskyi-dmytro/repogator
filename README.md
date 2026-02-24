@@ -1,4 +1,4 @@
-# 🐊 RepoGator
+![RepoGator](assets/screenshots/repogator_main.png)
 
 AI-powered GitHub automation that enriches issues, reviews pull requests, and generates documentation — driven by per-user LangGraph agents and a RAG knowledge base.
 
