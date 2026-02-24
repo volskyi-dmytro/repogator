@@ -100,6 +100,7 @@ async def _dispatch_event(event: dict) -> None:
             payload=event["payload"],
             correlation_id=correlation_id,
             repo_full_name=event["repo_full_name"],
+            webhook_event_id=event_id or "",
         )
 
         final_status = "failed" if result.get("error") else "completed"

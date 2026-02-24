@@ -16,6 +16,7 @@ class DocsOutput(BaseModel):
     technical_notes: str
     rag_sources: list[str]
     formatted_comment: str  # Ready to post to GitHub as markdown
+    tokens_used: int = 0
 
 
 class DocsAgent:
@@ -89,6 +90,7 @@ class DocsAgent:
         raw = json.loads(response.choices[0].message.content)
         raw["rag_sources"] = rag_sources
         raw["formatted_comment"] = self._format_comment(raw, context_type)
+        raw["tokens_used"] = tokens_used
 
         return DocsOutput(**raw)
 

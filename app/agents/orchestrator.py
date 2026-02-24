@@ -1,7 +1,9 @@
 """LangGraph multi-agent orchestrator for RepoGator."""
+from datetime import datetime
 from typing import TypedDict, Optional, Callable, Awaitable
 from langgraph.graph import StateGraph, START, END
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -10,6 +12,7 @@ class RepoGatorState(TypedDict):
     event_type: str          # "issues" | "pull_request"
     payload: dict
     correlation_id: str
+    webhook_event_id: str
     repo_full_name: str
     agent_outputs: dict
     github_posted: bool
@@ -174,20 +177,62 @@ class RepoGatorOrchestrator:
             return {**state, "error": str(e), "github_posted": False}
 
     async def _update_db(self, state: RepoGatorState) -> RepoGatorState:
-        """Node: Update DB record with final status."""
-        # Update AgentAction record with completed status
-        logger.info(
-            f"Event processed. github_posted={state['github_posted']}",
-            extra={"correlation_id": state["correlation_id"]}
+        """Node: Insert AgentAction record with final status."""
+        from app.db.models import AgentAction
+
+        outputs = state.get("agent_outputs", {})
+
+        # Determine agent name and extract tokens_used from whichever agent ran
+        if "requirements" in outputs:
+            agent_name = "requirements_agent"
+            tokens_used = outputs["requirements"].get("tokens_used")
+        elif "code_review" in outputs:
+            agent_name = "code_review_agent"
+            tokens_used = outputs["code_review"].get("tokens_used")
+        elif "docs" in outputs:
+            agent_name = "docs_agent"
+            tokens_used = outputs["docs"].get("tokens_used")
+        else:
+            agent_name = "unknown"
+            tokens_used = None
+
+        status = "error" if state.get("error") else "completed"
+
+        action = AgentAction(
+            id=str(uuid.uuid4()),
+            correlation_id=state["correlation_id"],
+            webhook_event_id=state["webhook_event_id"],
+            agent_name=agent_name,
+            input_data=state["payload"],
+            output_data=outputs if outputs else None,
+            github_posted=state["github_posted"],
+            tokens_used=tokens_used,
+            status=status,
+            error_message=state.get("error"),
+            created_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
         )
+
+        try:
+            async with self.db_session_factory() as session:
+                session.add(action)
+                await session.commit()
+            logger.info(
+                f"AgentAction recorded. agent={agent_name} status={status} tokens={tokens_used}",
+                extra={"correlation_id": state["correlation_id"]},
+            )
+        except Exception as e:
+            logger.error(f"Failed to write AgentAction: {e}", extra={"correlation_id": state["correlation_id"]})
+
         return state
 
-    async def process_event(self, event_type: str, payload: dict, correlation_id: str, repo_full_name: str) -> RepoGatorState:
+    async def process_event(self, event_type: str, payload: dict, correlation_id: str, repo_full_name: str, webhook_event_id: str = "") -> RepoGatorState:
         """Process a webhook event through the full agent graph."""
         initial_state: RepoGatorState = {
             "event_type": event_type,
             "payload": payload,
             "correlation_id": correlation_id,
+            "webhook_event_id": webhook_event_id,
             "repo_full_name": repo_full_name,
             "agent_outputs": {},
             "github_posted": False,

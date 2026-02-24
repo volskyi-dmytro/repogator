@@ -25,6 +25,7 @@ class CodeReviewOutput(BaseModel):
     issues_found: list[ReviewIssue]
     overall_severity: Literal["low", "medium", "high", "critical"]
     formatted_comment: str
+    tokens_used: int = 0
 
 
 class CodeReviewAgent:
@@ -64,6 +65,7 @@ class CodeReviewAgent:
 
         raw = json.loads(response.choices[0].message.content)
         raw["formatted_comment"] = self._format_comment(raw)
+        raw["tokens_used"] = tokens_used
 
         return CodeReviewOutput(**raw)
 
