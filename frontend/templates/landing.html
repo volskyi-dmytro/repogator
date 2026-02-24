@@ -164,55 +164,56 @@
       <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 gradient-text">
         AI-powered SDLC automation<br/>for your GitHub repos
       </h1>
-      <!-- Event feed value prop -->
-      <div class="relative max-w-xl mx-auto mb-12">
-        <!-- Terminal panel -->
-        <div class="rounded-xl border border-white/10 overflow-hidden" style="background: rgba(5,8,18,0.85); backdrop-filter: blur(16px);">
-          <!-- Terminal top bar -->
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-white/5" style="background: rgba(255,255,255,0.03);">
-            <span class="w-2.5 h-2.5 rounded-full bg-red-500/60"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-green-500/60"></span>
-            <span class="ml-2 text-xs text-slate-500 font-mono">repogator — webhook events</span>
-            <span class="ml-auto flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-              <span class="text-xs text-green-400/70 font-mono">listening</span>
-            </span>
+      <!-- Value prop cards -->
+      <div class="relative max-w-3xl mx-auto mb-12">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+          <!-- Card 1 -->
+          <div class="vp-card text-left rounded-xl p-5 opacity-0 border-l-2" style="background: rgba(0,212,255,0.05); border-color: #00d4ff; border-top: 1px solid rgba(0,212,255,0.12); border-right: 1px solid rgba(0,212,255,0.12); border-bottom: 1px solid rgba(0,212,255,0.12); animation: vp-in 0.5s cubic-bezier(0.22,1,0.36,1) forwards 0.15s;">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style="background: rgba(0,212,255,0.12);">
+                <svg class="w-4 h-4" fill="none" stroke="#00d4ff" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <span class="text-xs font-medium uppercase tracking-widest" style="color: #00d4ff;">Issue opened</span>
+            </div>
+            <p class="text-white text-sm font-semibold leading-snug mb-1">Requirements &amp; acceptance criteria</p>
+            <p class="text-slate-500 text-xs leading-relaxed">Written and posted as a comment before any developer picks it up.</p>
           </div>
-          <!-- Event rows -->
-          <div class="px-5 py-4 flex flex-col gap-3">
 
-            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.2s;">
-              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #00d4ff; border-color: rgba(0,212,255,0.35); background: rgba(0,212,255,0.07);">issues.opened</span>
-              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              <span class="text-sm text-slate-300 text-left">Requirements analysis &amp; acceptance criteria <span class="text-slate-500">posted as comment</span></span>
+          <!-- Card 2 -->
+          <div class="vp-card text-left rounded-xl p-5 opacity-0 border-l-2" style="background: rgba(0,255,136,0.05); border-color: #00ff88; border-top: 1px solid rgba(0,255,136,0.12); border-right: 1px solid rgba(0,255,136,0.12); border-bottom: 1px solid rgba(0,255,136,0.12); animation: vp-in 0.5s cubic-bezier(0.22,1,0.36,1) forwards 0.3s;">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style="background: rgba(0,255,136,0.12);">
+                <svg class="w-4 h-4" fill="none" stroke="#00ff88" viewBox="0 0 24 24" stroke-width="2"><path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              </div>
+              <span class="text-xs font-medium uppercase tracking-widest" style="color: #00ff88;">Pull request opened</span>
             </div>
-
-            <div class="w-full h-px" style="background: rgba(255,255,255,0.04);"></div>
-
-            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.5s;">
-              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #00ff88; border-color: rgba(0,255,136,0.35); background: rgba(0,255,136,0.07);">pull_request.opened</span>
-              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              <span class="text-sm text-slate-300 text-left">Code review against your project's conventions <span class="text-slate-500">posted as comment</span></span>
-            </div>
-
-            <div class="w-full h-px" style="background: rgba(255,255,255,0.04);"></div>
-
-            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.8s;">
-              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #a78bfa; border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.07);">pull_request.merged</span>
-              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              <span class="text-sm text-slate-300 text-left">Documentation summary of what changed and why <span class="text-slate-500">posted as comment</span></span>
-            </div>
-
+            <p class="text-white text-sm font-semibold leading-snug mb-1">Code review against your standards</p>
+            <p class="text-slate-500 text-xs leading-relaxed">Checks your diff against your project's own conventions and docs.</p>
           </div>
+
+          <!-- Card 3 -->
+          <div class="vp-card text-left rounded-xl p-5 opacity-0 border-l-2" style="background: rgba(167,139,250,0.05); border-color: #a78bfa; border-top: 1px solid rgba(167,139,250,0.12); border-right: 1px solid rgba(167,139,250,0.12); border-bottom: 1px solid rgba(167,139,250,0.12); animation: vp-in 0.5s cubic-bezier(0.22,1,0.36,1) forwards 0.45s;">
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style="background: rgba(167,139,250,0.12);">
+                <svg class="w-4 h-4" fill="none" stroke="#a78bfa" viewBox="0 0 24 24" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </div>
+              <span class="text-xs font-medium uppercase tracking-widest" style="color: #a78bfa;">Pull request merged</span>
+            </div>
+            <p class="text-white text-sm font-semibold leading-snug mb-1">Documentation summary</p>
+            <p class="text-slate-500 text-xs leading-relaxed">Plain-English summary of what changed and why, posted automatically.</p>
+          </div>
+
         </div>
       </div>
 
       <style>
-        @keyframes feed-in {
-          from { opacity: 0; transform: translateY(6px); }
+        @keyframes vp-in {
+          from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .vp-card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+        .vp-card:hover { transform: translateY(-2px); }
       </style>
       <a href="/auth/github"
          class="cta-btn inline-flex items-center gap-3 text-gray-900 font-semibold text-lg px-8 py-4 rounded-xl transition-all duration-300">
