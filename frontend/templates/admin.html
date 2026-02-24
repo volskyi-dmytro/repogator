@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ app_name }} — Admin</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png" />
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0a0f1e;
+      background-image: radial-gradient(circle, rgba(0,212,255,0.18) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .glass-card {
+      background: rgba(10,15,30,0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 12px;
+    }
+    .glass-header {
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(0,212,255,0.1);
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 font-sans">
+
+  <!-- Header -->
+  <header class="glass-header px-6 py-4 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/dashboard" class="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <img src="/static/logo-128.png" class="h-9 w-9 object-contain" alt="RepoGator logo" />
+          <span class="text-white">{{ app_name }}</span>
+        </a>
+        <span class="text-xs text-amber-400 font-medium bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/30">Admin</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-6 text-sm">
+        <a href="/dashboard" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Dashboard</a>
+        <a href="/repos" class="text-slate-400 hover:text-[#00d4ff] transition-colors">My Repos</a>
+        <a href="/knowledge" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Knowledge Base</a>
+        <a href="/settings" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Settings</a>
+        <a href="/admin" class="text-amber-400 font-medium border-b-2 border-amber-400 pb-0.5">Admin</a>
+        <a href="/auth/logout" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Logout</a>
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700/50">
+          <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full ring-2 ring-amber-400/30" />
+          <span class="text-slate-300 text-sm">{{ user.github_login }}</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <div>
+      <h1 class="text-3xl font-bold text-white mb-1">Admin Dashboard</h1>
+      <p class="text-slate-400 text-sm">System health, usage stats, and operations overview.</p>
+    </div>
+
+    <!-- Section 1: System Health -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">System Health</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+        <!-- Disk -->
+        <div class="glass-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-slate-400 text-sm font-medium">Disk</span>
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4-8 4"/></svg>
+          </div>
+          <div class="text-2xl font-bold text-white mb-1">{{ stats.disk_used_gb }} GB</div>
+          <div class="text-xs text-slate-400 mb-3">of {{ stats.disk_total_gb }} GB total &bull; {{ stats.disk_free_gb }} GB free</div>
+          <div class="w-full bg-slate-700/50 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all
+              {% if stats.disk_percent >= 85 %}bg-red-500
+              {% elif stats.disk_percent >= 70 %}bg-yellow-400
+              {% else %}bg-[#00ff88]{% endif %}"
+              style="width: {{ stats.disk_percent }}%"></div>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">{{ stats.disk_percent }}% used</div>
+        </div>
+
+        <!-- CPU -->
+        <div class="glass-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-slate-400 text-sm font-medium">CPU</span>
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3H7a2 2 0 00-2 2v2M9 3h6M9 3v2m6-2h2a2 2 0 012 2v2m-2-4v2M3 9v6m0-6h2m16 0v6m0-6h-2M9 21H7a2 2 0 01-2-2v-2m4 4h6m-6 0v-2m6 2h2a2 2 0 002-2v-2m-2 4v-2M9 9h6v6H9z"/></svg>
+          </div>
+          <div class="text-2xl font-bold text-white mb-1">{{ stats.cpu_percent }}%</div>
+          <div class="text-xs text-slate-400 mb-3">utilization</div>
+          <div class="w-full bg-slate-700/50 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all
+              {% if stats.cpu_percent >= 85 %}bg-red-500
+              {% elif stats.cpu_percent >= 70 %}bg-yellow-400
+              {% else %}bg-[#00ff88]{% endif %}"
+              style="width: {{ stats.cpu_percent }}%"></div>
+          </div>
+        </div>
+
+        <!-- RAM -->
+        <div class="glass-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-slate-400 text-sm font-medium">RAM</span>
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          </div>
+          <div class="text-2xl font-bold text-white mb-1">{{ stats.ram_used_gb }} GB</div>
+          <div class="text-xs text-slate-400 mb-3">of {{ stats.ram_total_gb }} GB total</div>
+          <div class="w-full bg-slate-700/50 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all
+              {% if stats.ram_percent >= 85 %}bg-red-500
+              {% elif stats.ram_percent >= 70 %}bg-yellow-400
+              {% else %}bg-[#00d4ff]{% endif %}"
+              style="width: {{ stats.ram_percent }}%"></div>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">{{ stats.ram_percent }}% used</div>
+        </div>
+
+        <!-- Queue -->
+        <div class="glass-card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-slate-400 text-sm font-medium">Redis Queue</span>
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          </div>
+          <div class="text-2xl font-bold
+            {% if stats.queue_depth == 0 %}text-[#00ff88]
+            {% elif stats.queue_depth != 'unavailable' and stats.queue_depth <= 10 %}text-yellow-400
+            {% else %}text-red-400{% endif %}
+            mb-1">{{ stats.queue_depth }}</div>
+          <div class="text-xs text-slate-400">events pending</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Storage -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Storage</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="glass-card p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-[#00d4ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4"/></svg>
+            <span class="text-slate-300 font-medium">PostgreSQL</span>
+          </div>
+          <div class="text-xl font-bold text-white">{{ stats.postgres_size }}</div>
+          <div class="text-xs text-slate-400 mt-1">database size</div>
+        </div>
+        <div class="glass-card p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg>
+            <span class="text-slate-300 font-medium">ChromaDB</span>
+          </div>
+          <div class="text-xl font-bold text-white">{{ stats.chroma_collections }} collections</div>
+          {% if stats.chroma_collection_list %}
+          <ul class="mt-2 space-y-1">
+            {% for col in stats.chroma_collection_list %}
+            <li class="text-xs text-slate-400 font-mono">{{ col.name }} <span class="text-slate-600">({{ col.count }} docs)</span></li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Application Stats -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Application Stats</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="glass-card p-5 text-center">
+          <div class="text-3xl font-bold text-[#00d4ff]">{{ stats.total_users }}</div>
+          <div class="text-xs text-slate-400 mt-1">Total Users</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="text-3xl font-bold text-[#00ff88]">{{ stats.total_repos }}</div>
+          <div class="text-xs text-slate-400 mt-1">Active Repos</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="text-3xl font-bold text-white">{{ stats.total_events }}</div>
+          <div class="text-xs text-slate-400 mt-1">Total Events</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="text-3xl font-bold
+            {% if stats.success_rate >= 95 %}text-[#00ff88]
+            {% elif stats.success_rate >= 80 %}text-yellow-400
+            {% else %}text-red-400{% endif %}">{{ stats.success_rate }}%</div>
+          <div class="text-xs text-slate-400 mt-1">Success Rate</div>
+        </div>
+        <div class="glass-card p-5 text-center">
+          <div class="text-3xl font-bold text-purple-400">{{ stats.kb_documents }}</div>
+          <div class="text-xs text-slate-400 mt-1">KB Documents</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Recent Users -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Recent Users</h2>
+      <div class="glass-card overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-700/50">
+              <th class="text-left px-5 py-3 text-slate-400 font-medium">User</th>
+              <th class="text-left px-5 py-3 text-slate-400 font-medium">Joined</th>
+              <th class="text-left px-5 py-3 text-slate-400 font-medium">Own API Keys</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in stats.recent_users %}
+            <tr class="border-b border-slate-700/20 hover:bg-white/5 transition-colors">
+              <td class="px-5 py-3">
+                <div class="flex items-center gap-3">
+                  <img src="{{ u.github_avatar_url }}" class="w-7 h-7 rounded-full" alt="" />
+                  <span class="text-slate-200 font-medium">{{ u.github_login }}</span>
+                  {% if u.is_admin %}<span class="text-xs text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">admin</span>{% endif %}
+                </div>
+              </td>
+              <td class="px-5 py-3 text-slate-400 font-mono text-xs">{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+              <td class="px-5 py-3">
+                {% if u.id in stats.users_with_keys_set %}
+                <span class="text-[#00ff88]">&#10003;</span>
+                {% else %}
+                <span class="text-slate-600">&#10007;</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 5: Top Repositories -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Top Repositories</h2>
+      <div class="glass-card overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-700/50">
+              <th class="text-left px-5 py-3 text-slate-400 font-medium">Repository</th>
+              <th class="text-left px-5 py-3 text-slate-400 font-medium">Events</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for repo in stats.top_repos %}
+            <tr class="border-b border-slate-700/20 hover:bg-white/5 transition-colors">
+              <td class="px-5 py-3 text-slate-200 font-mono text-xs">{{ repo.repo_full_name }}</td>
+              <td class="px-5 py-3 text-[#00d4ff] font-bold">{{ repo.event_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 6: Quick Links -->
+    <section>
+      <h2 class="text-lg font-semibold text-slate-200 mb-4">Quick Links</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/grafana/" target="_blank"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 rounded-lg hover:bg-orange-500/20 transition-colors font-medium text-sm">
+          Open Grafana →
+        </a>
+        <a href="/metrics" target="_blank"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-slate-700/50 border border-slate-600/50 text-slate-300 rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm">
+          Prometheus Metrics →
+        </a>
+        <a href="/admin/audit"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-slate-700/50 border border-slate-600/50 text-slate-400 rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm cursor-not-allowed opacity-50">
+          View Audit Log → (coming soon)
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-6 py-6 mt-8 border-t border-slate-700/30">
+    <p class="text-xs text-slate-600 text-center">
+      Admin access only. Logged in as <span class="text-slate-500">{{ user.github_login }}</span>.
+    </p>
+  </footer>
+
+</body>
+</html>

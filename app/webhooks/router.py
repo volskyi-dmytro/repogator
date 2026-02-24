@@ -156,6 +156,9 @@ async def handle_per_repo_webhook(
     }
     await _queue.push_event(queue_payload)
 
+    from app.core.metrics import webhook_events_total
+    webhook_events_total.labels(event_type=event_type, action=action, repo=repo_full_name).inc()
+
     logger.info(
         "Per-repo webhook received and enqueued",
         extra={"correlation_id": correlation_id, "repo": repo_full_name},
@@ -224,6 +227,9 @@ async def handle_webhook(
         "payload": payload,
     }
     await _queue.push_event(queue_payload)
+
+    from app.core.metrics import webhook_events_total
+    webhook_events_total.labels(event_type=event_type, action=action, repo=repo_full_name).inc()
 
     logger.info(
         "Webhook received and enqueued",

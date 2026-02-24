@@ -1,10 +1,11 @@
 import asyncio
+import time
 import traceback
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -12,6 +13,7 @@ from sqlalchemy import select, update as sa_update
 
 from app.config import settings
 from app.core.logging import CorrelationIdMiddleware, get_logger
+from app.core.metrics import agent_runs_total, agent_duration_seconds
 from app.core.queue import QueueWorker, RedisQueue
 from app.db.session import create_all_tables, dispose_engine, AsyncSessionLocal
 from app.db.models import WebhookEvent
@@ -21,6 +23,7 @@ from app.auth.router import router as auth_router
 from app.repos.router import router as repos_router
 from app.settings_page.router import router as settings_router
 from app.knowledge.router import router as knowledge_router
+from app.admin.router import router as admin_router
 
 logger = get_logger(__name__)
 
@@ -38,6 +41,7 @@ async def _dispatch_event(event: dict) -> None:
         logger.info("TESTING mode — skipping real orchestrator dispatch", extra={"event_type": event.get("event_type")})
         return
 
+    start = time.time()
     try:
         # Import here to avoid circular imports and allow lazy initialization
         from app.agents.orchestrator import RepoGatorOrchestrator
@@ -104,6 +108,7 @@ async def _dispatch_event(event: dict) -> None:
         )
 
         final_status = "failed" if result.get("error") else "completed"
+        agent_runs_total.labels(agent_name=event.get("event_type", "unknown"), status=final_status).inc()
         logger.info(
             "Event dispatched successfully",
             extra={"correlation_id": correlation_id, "status": final_status},
@@ -111,11 +116,14 @@ async def _dispatch_event(event: dict) -> None:
 
     except Exception as exc:
         final_status = "failed"
+        agent_runs_total.labels(agent_name=event.get("event_type", "unknown"), status=final_status).inc()
         logger.error(
             "Unhandled exception in _dispatch_event",
             extra={"correlation_id": correlation_id, "error": str(exc), "traceback": traceback.format_exc()},
             exc_info=True,
         )
+    finally:
+        agent_duration_seconds.labels(agent_name=event.get("event_type", "unknown")).observe(time.time() - start)
 
     # Update WebhookEvent status in DB
     if event_id:
@@ -232,8 +240,16 @@ app.include_router(auth_router, prefix="", tags=["auth"])
 app.include_router(repos_router, prefix="", tags=["repos"])
 app.include_router(settings_router, prefix="", tags=["settings"])
 app.include_router(knowledge_router, prefix="", tags=["knowledge"])
+app.include_router(admin_router, prefix="", tags=["admin"])
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics():
+    """Prometheus metrics endpoint — internal only."""
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/robots.txt", include_in_schema=False)

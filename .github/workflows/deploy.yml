@@ -54,15 +54,18 @@ jobs:
           echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-      - name: Sync compose file to VPS
+      - name: Sync files to VPS
         run: |
           scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/docker-compose.prod.yml
+          scp -i ~/.ssh/deploy_key nginx/repogator.conf ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/nginx/repogator.conf
+          scp -r -i ~/.ssh/deploy_key monitoring/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/monitoring/
       - name: Deploy to VPS
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
           cd /opt/repogator
           docker pull ${{ secrets.DOCKER_USERNAME }}/repogator:${{ github.sha }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
+          docker compose -f docker-compose.prod.yml up -d --no-recreate prometheus grafana cadvisor
           DEPLOY
       - name: Health check
         run: |

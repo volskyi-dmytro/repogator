@@ -7,6 +7,7 @@ import redis.asyncio as aioredis
 
 from app.config import settings
 from app.core.logging import get_logger
+from app.core.metrics import queue_depth
 
 logger = get_logger(__name__)
 
@@ -55,6 +56,8 @@ class RedisQueue:
         """
         client = self._ensure_connected()
         await client.lpush(settings.webhook_queue_name, json.dumps(event_data))
+        depth = await client.llen(settings.webhook_queue_name)
+        queue_depth.set(depth)
         logger.debug("Pushed event to queue", extra={"queue": settings.webhook_queue_name})
 
     async def pop_event(self) -> Optional[dict]:
@@ -70,6 +73,8 @@ class RedisQueue:
         if result is None:
             return None
         _, raw = result
+        depth = await client.llen(settings.webhook_queue_name)
+        queue_depth.set(depth)
         return json.loads(raw)
 
     async def ping(self) -> bool:

@@ -1,0 +1,20 @@
+groups:
+  - name: repogator
+    rules:
+      - alert: AgentHighFailureRate
+        expr: |
+          rate(repogator_agent_runs_total{status="failed"}[5m])
+          / rate(repogator_agent_runs_total[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent failure rate above 20%"
+
+      - alert: QueueDepthHigh
+        expr: repogator_queue_depth > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis queue has {{ $value }} pending events"

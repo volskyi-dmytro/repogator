@@ -1,0 +1,144 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {"type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.4.0"},
+    {"type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0"}
+  ],
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "title": "Pipeline Health",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 2}},
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 1},
+      "id": 2,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single"}},
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "rate(repogator_agent_runs_total[5m])", "legendFormat": "{{agent_name}} - {{status}}", "refId": "A"}],
+      "title": "Agent runs per minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 80}, {"color": "green", "value": 95}]},
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 1},
+      "id": 3,
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "orientation": "auto", "showThresholdLabels": false, "showThresholdMarkers": true},
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "100 * rate(repogator_agent_runs_total{status=\"completed\"}[5m]) / rate(repogator_agent_runs_total[5m])", "legendFormat": "Success Rate", "refId": "A"}],
+      "title": "Agent success rate %",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 1},
+      "id": 4,
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "targets": [
+        {"datasource": {"type": "prometheus"}, "expr": "histogram_quantile(0.5, rate(repogator_agent_duration_seconds_bucket[5m]))", "legendFormat": "p50 {{agent_name}}", "refId": "A"},
+        {"datasource": {"type": "prometheus"}, "expr": "histogram_quantile(0.95, rate(repogator_agent_duration_seconds_bucket[5m]))", "legendFormat": "p95 {{agent_name}}", "refId": "B"}
+      ],
+      "title": "Agent duration p50/p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 2}}, "overrides": []},
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 1},
+      "id": 5,
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "repogator_queue_depth", "legendFormat": "Queue depth", "refId": "A"}],
+      "title": "Queue depth over time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+      "id": 6,
+      "title": "Traffic",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 10},
+      "id": 7,
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "rate(repogator_webhook_events_total[5m])", "legendFormat": "{{event_type}}", "refId": "A"}],
+      "title": "Webhook events per minute",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 10},
+      "id": 8,
+      "options": {"frameIndex": 0, "showHeader": true},
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "topk(10, sum by (repo) (repogator_webhook_events_total))", "legendFormat": "{{repo}}", "refId": "A", "instant": true}],
+      "title": "Top repos by event volume",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+      "id": 9,
+      "title": "System",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 19},
+      "id": 10,
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "rate(container_cpu_usage_seconds_total{name=\"repogator-app\"}[5m]) * 100", "legendFormat": "CPU %", "refId": "A"}],
+      "title": "App CPU %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 19},
+      "id": 11,
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "container_memory_usage_bytes{name=\"repogator-app\"}", "legendFormat": "Memory", "refId": "A"}],
+      "title": "App memory usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 19},
+      "id": 12,
+      "targets": [{"datasource": {"type": "prometheus"}, "expr": "increase(container_last_seen{name=~\"repogator.*\"}[1h])", "legendFormat": "{{name}}", "refId": "A"}],
+      "title": "Container restarts",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["repogator"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "RepoGator",
+  "uid": "repogator-main",
+  "version": 1
+}

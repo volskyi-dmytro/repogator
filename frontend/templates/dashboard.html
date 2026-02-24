@@ -74,6 +74,9 @@
         <a href="/repos" class="text-slate-400 hover:text-[#00d4ff] transition-colors">My Repos</a>
         <a href="/knowledge" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Knowledge Base</a>
         <a href="/settings" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Settings</a>
+        {% if user.is_admin %}
+        <a href="/admin" class="text-amber-400 hover:text-amber-300 font-medium transition-colors">Admin</a>
+        {% endif %}
         <a href="/auth/logout" class="text-slate-400 hover:text-[#00d4ff] transition-colors">Logout</a>
         <div class="flex items-center gap-2 ml-2 pl-4 border-l border-slate-700/50">
           <img src="{{ user.github_avatar_url }}" alt="avatar" class="w-8 h-8 rounded-full ring-2 ring-[#00d4ff]/30" />
@@ -96,6 +99,9 @@
         <a href="/repos" class="px-4 py-3 rounded-lg text-sm text-slate-400 hover:text-[#00d4ff] hover:bg-white/5 transition-colors">My Repos</a>
         <a href="/knowledge" class="px-4 py-3 rounded-lg text-sm text-slate-400 hover:text-[#00d4ff] hover:bg-white/5 transition-colors">Knowledge Base</a>
         <a href="/settings" class="px-4 py-3 rounded-lg text-sm text-slate-400 hover:text-[#00d4ff] hover:bg-white/5 transition-colors">Settings</a>
+        {% if user.is_admin %}
+        <a href="/admin" class="px-4 py-3 rounded-lg text-sm text-amber-400 hover:text-amber-300 font-medium hover:bg-white/5 transition-colors">Admin</a>
+        {% endif %}
         <a href="/auth/logout" class="px-4 py-3 rounded-lg text-sm text-slate-400 hover:text-[#00d4ff] hover:bg-white/5 transition-colors">Logout</a>
       </nav>
     </div>
