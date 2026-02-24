@@ -79,7 +79,13 @@ async def auto_ingest_repo_docs(repo_full_name: str, user_id: str, github_token:
         )
         user_settings = result.scalar_one_or_none()
 
-    openai_key = (user_settings.openai_api_key if user_settings else None) or _settings.openai_api_key
+    openai_key = (user_settings.openai_api_key if user_settings else None)
+    if not openai_key:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "Skipping auto-ingest for %s: user %s has no OpenAI key set", repo_full_name, user_id
+        )
+        return
     embedding_model = (user_settings.openai_embedding_model if user_settings else None) or _settings.openai_embedding_model
 
     kb = KnowledgeBase(

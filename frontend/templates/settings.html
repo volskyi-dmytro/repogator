@@ -127,7 +127,7 @@
           {% if settings.openrouter_api_key_masked %}
             <p class="text-xs text-slate-500 mt-1">Current: {{ settings.openrouter_api_key_masked }}</p>
           {% else %}
-            <p class="text-xs text-slate-500 mt-1">No key set — using system default</p>
+            <p class="text-xs text-red-400/80 mt-1">No key set — features will not work until you add one</p>
           {% endif %}
         </div>
 
@@ -161,7 +161,7 @@
           {% if settings.openai_api_key_masked %}
             <p class="text-xs text-slate-500 mt-1">Current: {{ settings.openai_api_key_masked }}</p>
           {% else %}
-            <p class="text-xs text-slate-500 mt-1">No key set — using system default</p>
+            <p class="text-xs text-red-400/80 mt-1">No key set — features will not work until you add one</p>
           {% endif %}
         </div>
 
@@ -172,7 +172,7 @@
         </div>
       </div>
 
-      <p class="text-xs text-slate-500">Leave key fields empty to keep existing keys. Use "Clear key" to remove a saved key.</p>
+      <p class="text-xs text-slate-500">Leave key fields empty to keep existing keys. Use "Clear key" to remove a saved key. Both keys are required for all features to work.</p>
 
       <button type="submit"
               class="bg-[#00d4ff] text-[#0a0f1e] font-bold px-6 py-2.5 rounded-lg text-sm transition-all hover:shadow-[0_0_20px_rgba(0,212,255,0.5)]">

@@ -32,7 +32,9 @@ async def _get_kb_for_user(user_id: str) -> KnowledgeBase:
         )
         user_settings = result.scalar_one_or_none()
 
-    openai_key = (user_settings.openai_api_key if user_settings else None) or settings.openai_api_key
+    openai_key = (user_settings.openai_api_key if user_settings else None)
+    if not openai_key:
+        raise ValueError("No OpenAI API key set. Please add your key in Settings.")
     embedding_model = (user_settings.openai_embedding_model if user_settings else None) or settings.openai_embedding_model
 
     return KnowledgeBase(
