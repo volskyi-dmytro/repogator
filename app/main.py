@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -232,3 +233,15 @@ app.include_router(settings_router, prefix="", tags=["settings"])
 app.include_router(knowledge_router, prefix="", tags=["knowledge"])
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt() -> PlainTextResponse:
+    content = (
+        "User-agent: *\n"
+        "Disallow: /dashboard\n"
+        "Disallow: /repos\n"
+        "Disallow: /knowledge\n"
+        "Disallow: /settings\n"
+    )
+    return PlainTextResponse(content)
