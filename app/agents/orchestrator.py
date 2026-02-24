@@ -24,6 +24,8 @@ def route_event(state: RepoGatorState) -> str:
         return "requirements_agent"
     elif event_type == "pull_request" and action == "opened":
         return "code_review_agent"
+    elif event_type == "pull_request" and action == "closed" and state["payload"].get("pull_request", {}).get("merged"):
+        return "docs_agent"
     else:
         return "unknown_event"
 
@@ -31,19 +33,21 @@ def route_event(state: RepoGatorState) -> str:
 def build_graph(
     requirements_agent_fn: Callable[[RepoGatorState], Awaitable[RepoGatorState]],
     code_review_agent_fn: Callable[[RepoGatorState], Awaitable[RepoGatorState]],
+    docs_agent_fn: Callable[[RepoGatorState], Awaitable[RepoGatorState]],
     post_to_github_fn: Callable[[RepoGatorState], Awaitable[RepoGatorState]],
     update_db_fn: Callable[[RepoGatorState], Awaitable[RepoGatorState]],
 ) -> StateGraph:
     """Build and compile the LangGraph orchestration graph.
 
     Graph flow:
-    START -> route_event -> [requirements_agent | code_review_agent] -> post_to_github -> update_db -> END
+    START -> route_event -> [requirements_agent | code_review_agent | docs_agent] -> post_to_github -> update_db -> END
     """
     workflow = StateGraph(RepoGatorState)
 
     # Add nodes
     workflow.add_node("requirements_agent", requirements_agent_fn)
     workflow.add_node("code_review_agent", code_review_agent_fn)
+    workflow.add_node("docs_agent", docs_agent_fn)
     workflow.add_node("post_to_github", post_to_github_fn)
     workflow.add_node("update_db", update_db_fn)
 
@@ -54,6 +58,7 @@ def build_graph(
         {
             "requirements_agent": "requirements_agent",
             "code_review_agent": "code_review_agent",
+            "docs_agent": "docs_agent",
             "unknown_event": END,
         }
     )
@@ -61,6 +66,7 @@ def build_graph(
     # After any agent -> post to github
     workflow.add_edge("requirements_agent", "post_to_github")
     workflow.add_edge("code_review_agent", "post_to_github")
+    workflow.add_edge("docs_agent", "post_to_github")
     workflow.add_edge("post_to_github", "update_db")
     workflow.add_edge("update_db", END)
 
@@ -82,6 +88,7 @@ class RepoGatorOrchestrator:
         return build_graph(
             requirements_agent_fn=self._run_requirements_agent,
             code_review_agent_fn=self._run_code_review_agent,
+            docs_agent_fn=self._run_docs_agent,
             post_to_github_fn=self._post_to_github,
             update_db_fn=self._update_db,
         )
@@ -99,6 +106,23 @@ class RepoGatorOrchestrator:
             return {**state, "agent_outputs": {"requirements": output.model_dump(), "issue_number": issue.get("number")}}
         except Exception as e:
             logger.error(f"Requirements agent failed: {e}", extra={"correlation_id": state["correlation_id"]})
+            return {**state, "error": str(e)}
+
+    async def _run_docs_agent(self, state: RepoGatorState) -> RepoGatorState:
+        """Node: Run docs agent on merged PR event."""
+        try:
+            pr = state["payload"].get("pull_request", {})
+            output = await self.docs_agent.process(
+                title=pr.get("title", ""),
+                body=pr.get("body", ""),
+                diff=None,
+                repo=state["repo_full_name"],
+                correlation_id=state["correlation_id"],
+                context_type="pull_request",
+            )
+            return {**state, "agent_outputs": {"docs": output.model_dump(), "pr_number": pr.get("number")}}
+        except Exception as e:
+            logger.error(f"Docs agent failed: {e}", extra={"correlation_id": state["correlation_id"]})
             return {**state, "error": str(e)}
 
     async def _run_code_review_agent(self, state: RepoGatorState) -> RepoGatorState:
@@ -136,6 +160,11 @@ class RepoGatorOrchestrator:
 
             elif "code_review" in outputs:
                 comment_body = outputs["code_review"]["formatted_comment"]
+                pr_number = outputs["pr_number"]
+                await self.github.post_comment(repo, pr_number, comment_body)
+
+            elif "docs" in outputs:
+                comment_body = outputs["docs"]["formatted_comment"]
                 pr_number = outputs["pr_number"]
                 await self.github.post_comment(repo, pr_number, comment_body)
 
