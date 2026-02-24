@@ -110,9 +110,13 @@
 
         <div>
           <label class="block text-sm text-slate-300 mb-1">API Key</label>
-          <div class="flex gap-2 items-center">
-            <input type="password" name="openrouter_api_key" placeholder="sk-or-..."
+          <div data-key-field="openrouter_api_key" class="flex gap-2 items-center">
+            <input type="password" placeholder="sk-or-..."
                    class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30 font-mono" />
+            <input type="hidden" name="openrouter_api_key" value="" />
+            <div class="clear-indicator hidden flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-900/20 text-red-400 text-sm">
+              🗑 Key will be removed on save
+            </div>
             {% if settings.openrouter_api_key_masked %}
             <button type="button" onclick="clearKey('openrouter_api_key', this)"
                     class="px-3 py-2 text-xs text-slate-400 hover:text-red-400 border border-slate-600 hover:border-red-500/50 rounded-lg transition-colors whitespace-nowrap">
@@ -140,9 +144,13 @@
 
         <div>
           <label class="block text-sm text-slate-300 mb-1">API Key</label>
-          <div class="flex gap-2 items-center">
-            <input type="password" name="openai_api_key" placeholder="sk-..."
+          <div data-key-field="openai_api_key" class="flex gap-2 items-center">
+            <input type="password" placeholder="sk-..."
                    class="flex-1 bg-[#0a0f1e] border border-slate-700 text-white rounded-lg px-4 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff]/30 font-mono" />
+            <input type="hidden" name="openai_api_key" value="" />
+            <div class="clear-indicator hidden flex-1 px-3 py-2 rounded-lg border border-red-500/30 bg-red-900/20 text-red-400 text-sm">
+              🗑 Key will be removed on save
+            </div>
             {% if settings.openai_api_key_masked %}
             <button type="button" onclick="clearKey('openai_api_key', this)"
                     class="px-3 py-2 text-xs text-slate-400 hover:text-red-400 border border-slate-600 hover:border-red-500/50 rounded-lg transition-colors whitespace-nowrap">
@@ -183,24 +191,32 @@
 
   <script>
     function clearKey(fieldName, btn) {
-      const input = document.querySelector(`[name="${fieldName}"]`);
-      input.value = '__CLEAR__';
-      input.type = 'text';
-      input.placeholder = 'Key will be removed on save';
-      input.classList.add('text-red-400');
+      const wrapper = document.querySelector(`[data-key-field="${fieldName}"]`);
+      wrapper.querySelector('input[type="password"]').style.display = 'none';
+      wrapper.querySelector('.clear-indicator').classList.remove('hidden');
+      wrapper.querySelector('input[type="hidden"]').value = '__CLEAR__';
       btn.textContent = 'Undo';
       btn.onclick = () => undoClear(fieldName, btn);
     }
 
     function undoClear(fieldName, btn) {
-      const input = document.querySelector(`[name="${fieldName}"]`);
-      input.value = '';
-      input.type = 'password';
-      input.placeholder = fieldName.includes('openrouter') ? 'sk-or-...' : 'sk-...';
-      input.classList.remove('text-red-400');
+      const wrapper = document.querySelector(`[data-key-field="${fieldName}"]`);
+      wrapper.querySelector('input[type="password"]').style.display = '';
+      wrapper.querySelector('.clear-indicator').classList.add('hidden');
+      wrapper.querySelector('input[type="hidden"]').value = '';
       btn.textContent = 'Clear key';
       btn.onclick = () => clearKey(fieldName, btn);
     }
+
+    document.querySelector('form').addEventListener('submit', () => {
+      document.querySelectorAll('[data-key-field]').forEach(wrapper => {
+        const visible = wrapper.querySelector('input[type="password"]');
+        const hidden = wrapper.querySelector('input[type="hidden"]');
+        if (hidden.value !== '__CLEAR__' && visible.value) {
+          hidden.value = visible.value;
+        }
+      });
+    });
   </script>
 
   <script>
