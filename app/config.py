@@ -37,13 +37,13 @@ class Settings(BaseSettings):
     # GitHub OAuth
     github_client_id: str = ""
     github_client_secret: str = ""
-    session_secret_key: str = "change-me-in-production-use-secrets-token-hex-32"
+    session_secret_key: str
 
     # App base URL (for webhook callbacks)
-    app_base_url: str = "https://repogator.gojoble.online"
+    app_base_url: str = "http://localhost:8000"
 
     # Admin
-    admin_email: str = "volskyi.dmytro@gmail.com"
+    admin_email: str = "admin@example.com"
 
     # Queue
     webhook_queue_name: str = "repogator:webhook_events"
