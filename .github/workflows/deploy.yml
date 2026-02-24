@@ -56,11 +56,10 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
       - name: Sync files to VPS
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/repogator/monitoring/grafana/dashboards /opt/repogator/monitoring/grafana/datasources"
           scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/docker-compose.prod.yml
           scp -i ~/.ssh/deploy_key nginx/repogator.conf ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/repogator.conf
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "sudo mv /tmp/repogator.conf /etc/nginx/sites-available/repogator.conf"
-          scp -r -i ~/.ssh/deploy_key monitoring/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/monitoring/
+          rsync -az --mkpath -e "ssh -i ~/.ssh/deploy_key" monitoring/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/monitoring/
       - name: Deploy to VPS
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
