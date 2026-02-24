@@ -57,7 +57,7 @@ jobs:
       - name: Sync files to VPS
         run: |
           scp -i ~/.ssh/deploy_key docker-compose.prod.yml ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/docker-compose.prod.yml
-          scp -i ~/.ssh/deploy_key nginx/repogator.conf ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/nginx/repogator.conf
+          scp -i ~/.ssh/deploy_key nginx/repogator.conf ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/etc/nginx/sites-available/repogator.conf
           scp -r -i ~/.ssh/deploy_key monitoring/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/monitoring/
       - name: Deploy to VPS
         run: |
@@ -66,6 +66,7 @@ jobs:
           docker pull ${{ secrets.DOCKER_USERNAME }}/repogator:${{ github.sha }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
           docker compose -f docker-compose.prod.yml up -d --no-recreate prometheus grafana cadvisor
+          sudo nginx -t && sudo nginx -s reload
           DEPLOY
       - name: Health check
         run: |
