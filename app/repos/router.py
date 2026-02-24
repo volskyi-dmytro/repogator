@@ -244,6 +244,14 @@ async def add_repo(request: Request, background_tasks: BackgroundTasks):
     # Install webhook on GitHub
     webhook_id = await install_webhook(token, repo_full_name, webhook_url, webhook_secret)
 
+    # If install failed (likely missing write:repo_hook scope), redirect to expand-scope flow
+    if not webhook_id:
+        import urllib.parse
+        return RedirectResponse(
+            f"/auth/expand-scope?repo={urllib.parse.quote(repo_full_name)}",
+            status_code=303,
+        )
+
     async with AsyncSessionLocal() as session:
         # Check for existing (deactivated) entry
         result = await session.execute(

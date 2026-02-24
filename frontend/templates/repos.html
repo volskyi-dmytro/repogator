@@ -97,8 +97,14 @@
         const container = document.getElementById('flash');
         const successMessages = { repo_added: 'Repository added successfully.', repo_removed: 'Repository removed and webhook uninstalled.' };
         const errorMessages = { invalid_repo_name: 'Invalid repository name. Use owner/repo format.', no_access: 'Cannot access that repository. Check it exists and you have permission.', not_found: 'Repository not found.' };
-        const s = params.get('success'), e = params.get('error');
-        if (s) {
+        const s = params.get('success'), e = params.get('error'), pendingRepo = params.get('pending_repo');
+        if (s === 'scope_expanded' && pendingRepo) {
+          container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">GitHub permissions granted. Now add <strong>${pendingRepo}</strong> using the form below.</div>`;
+          document.addEventListener('DOMContentLoaded', () => {
+            const input = document.querySelector('input[name="repo_full_name"]');
+            if (input) input.value = pendingRepo;
+          });
+        } else if (s) {
           container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">${successMessages[s] || s}</div>`;
         }
         if (e) {
