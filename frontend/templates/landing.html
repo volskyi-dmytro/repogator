@@ -189,8 +189,9 @@
           </div>
           <h3 class="text-lg font-semibold mb-2">Issues Enriched</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
-            Automatically structures raw issue text into requirements with acceptance criteria,
-            edge cases, and implementation hints.
+            When a new issue is opened, RepoGator replies with structured acceptance criteria,
+            edge cases, implementation hints, and clarifying questions — turning vague reports
+            into actionable specs before a developer even looks at them.
           </p>
         </div>
 
@@ -202,8 +203,9 @@
           </div>
           <h3 class="text-lg font-semibold mb-2">PRs Reviewed</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
-            AI-powered code review that catches bugs, suggests improvements,
-            and posts inline comments directly on your pull requests.
+            Every new pull request gets an AI review that checks for bugs, logic errors,
+            and convention violations — informed by your project's own README and docs,
+            not just generic best practices.
           </p>
         </div>
 
@@ -215,11 +217,91 @@
           </div>
           <h3 class="text-lg font-semibold mb-2">Docs Generated</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
-            Context-aware documentation generated from your codebase,
-            keeping your docs in sync with every merged change.
+            RepoGator builds a knowledge base from your existing documentation and keeps it
+            in sync with your codebase, so every AI comment reflects your actual architecture
+            and conventions.
           </p>
         </div>
 
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section class="pb-28">
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-12 gradient-text">How it works</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <div class="glass-card rounded-xl p-7 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-3xl font-bold text-cyan-400/40">01</span>
+          </div>
+          <h3 class="text-base font-semibold">Connect GitHub</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Sign in with your GitHub account. RepoGator only requests read access to your
+            profile — no broad permissions upfront.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-7 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-3xl font-bold text-cyan-400/40">02</span>
+          </div>
+          <h3 class="text-base font-semibold">Add a repository</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Pick a repo. RepoGator installs a webhook on it so GitHub notifies RepoGator
+            every time an issue or pull request is opened.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-7 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-3xl font-bold text-cyan-400/40">03</span>
+          </div>
+          <h3 class="text-base font-semibold">Add your API keys</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Paste your <a href="https://openrouter.ai" target="_blank" rel="noopener" class="text-cyan-400 hover:underline">OpenRouter</a>
+            and <a href="https://platform.openai.com" target="_blank" rel="noopener" class="text-cyan-400 hover:underline">OpenAI</a>
+            keys in Settings. They're stored encrypted and billed directly to your own account.
+          </p>
+        </div>
+
+        <div class="glass-card rounded-xl p-7 flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-3xl font-bold text-cyan-400/40">04</span>
+          </div>
+          <h3 class="text-base font-semibold">Let it run</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            That's it. Every new issue and PR on your connected repos gets an AI comment
+            automatically. No further action required.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- What you need -->
+    <section class="pb-28 max-w-2xl mx-auto text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold mb-4 gradient-text">What you need</h2>
+      <p class="text-slate-400 text-sm mb-8">
+        RepoGator uses your own API keys, so AI costs go directly to your accounts —
+        no hidden markups or usage caps imposed by us.
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+        <div class="glass-card rounded-xl p-5">
+          <p class="text-xs text-slate-500 font-mono mb-1">Required</p>
+          <p class="text-sm font-semibold text-white mb-1">GitHub account</p>
+          <p class="text-xs text-slate-400">Login &amp; webhook installation</p>
+        </div>
+        <div class="glass-card rounded-xl p-5">
+          <p class="text-xs text-slate-500 font-mono mb-1">Required</p>
+          <p class="text-sm font-semibold text-white mb-1">OpenRouter key</p>
+          <p class="text-xs text-slate-400">Runs the language model (Claude 3.5 Sonnet by default)</p>
+        </div>
+        <div class="glass-card rounded-xl p-5">
+          <p class="text-xs text-slate-500 font-mono mb-1">Required</p>
+          <p class="text-sm font-semibold text-white mb-1">OpenAI key</p>
+          <p class="text-xs text-slate-400">Generates embeddings for context-aware search</p>
+        </div>
       </div>
     </section>
 
