@@ -96,7 +96,7 @@
         const params = new URLSearchParams(window.location.search);
         const container = document.getElementById('flash');
         if (params.get('success')) {
-          container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">${params.get('success')}</div>`;
+          container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">Settings saved successfully.</div>`;
         }
       });
     </script>

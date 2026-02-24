@@ -95,11 +95,14 @@
       const params = new URLSearchParams(window.location.search);
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('flash');
-        if (params.get('success')) {
-          container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">${params.get('success')}</div>`;
+        const successMessages = { repo_added: 'Repository added successfully.', repo_removed: 'Repository removed.' };
+        const errorMessages = { invalid_repo_name: 'Invalid repository name. Use owner/repo format.', no_access: 'Cannot access that repository. Check it exists and you have permission.', not_found: 'Repository not found.' };
+        const s = params.get('success'), e = params.get('error');
+        if (s) {
+          container.innerHTML = `<div class="bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00ff88] px-4 py-3 rounded-lg text-sm">${successMessages[s] || s}</div>`;
         }
-        if (params.get('error')) {
-          container.innerHTML = `<div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">${params.get('error')}</div>`;
+        if (e) {
+          container.innerHTML = `<div class="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg text-sm">${errorMessages[e] || e}</div>`;
         }
       });
     </script>
@@ -145,10 +148,10 @@
             <td class="px-4 py-3">
               <code class="text-xs text-slate-400 font-mono cursor-pointer hover:text-[#00d4ff] transition-colors"
                     onclick="navigator.clipboard.writeText(this.textContent)" title="Click to copy">
-                {{ webhook_base_url }}/webhook/{{ repo.id }}
+                {{ repo.webhook_url }}
               </code>
             </td>
-            <td class="px-4 py-3 text-slate-400 text-xs font-mono">{{ repo.created_at.strftime('%Y-%m-%d') }}</td>
+            <td class="px-4 py-3 text-slate-400 text-xs font-mono">{{ repo.created_at }}</td>
             <td class="px-4 py-3 text-right">
               <form method="POST" action="/repos/{{ repo.id }}/delete" class="inline"
                     onsubmit="return confirm('Delete this repo?')">
