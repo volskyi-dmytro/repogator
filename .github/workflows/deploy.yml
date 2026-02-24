@@ -67,7 +67,7 @@ jobs:
           cd /opt/repogator
           docker pull ${{ secrets.DOCKER_USERNAME }}/repogator:${{ github.sha }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
-          docker compose -f docker-compose.prod.yml up -d --no-recreate prometheus grafana cadvisor
+          docker compose -f docker-compose.prod.yml up -d prometheus grafana cadvisor
           sudo nginx -t && sudo nginx -s reload
           DEPLOY
       - name: Health check
