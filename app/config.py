@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     session_secret_key: str
 
-    # App base URL (for webhook callbacks)
-    app_base_url: str = "http://localhost:8000"
+    # App base URL (for webhook callbacks) — must be set in .env, e.g. https://repogator.gojoble.online
+    app_base_url: str
 
     # Admin
     admin_email: str = "admin@example.com"

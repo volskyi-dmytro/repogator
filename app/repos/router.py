@@ -299,8 +299,7 @@ async def delete_repo(request: Request, repo_id: str):
         if repo.webhook_id:
             await delete_webhook(user["github_access_token"], repo.repo_full_name, repo.webhook_id)
 
-        repo.is_active = False
-        repo.webhook_id = None
+        await session.delete(repo)
         await session.commit()
 
     return RedirectResponse("/repos?success=repo_removed", status_code=303)

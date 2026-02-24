@@ -95,7 +95,7 @@
       const params = new URLSearchParams(window.location.search);
       document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('flash');
-        const successMessages = { repo_added: 'Repository added successfully.', repo_removed: 'Repository removed.' };
+        const successMessages = { repo_added: 'Repository added successfully.', repo_removed: 'Repository removed and webhook uninstalled.' };
         const errorMessages = { invalid_repo_name: 'Invalid repository name. Use owner/repo format.', no_access: 'Cannot access that repository. Check it exists and you have permission.', not_found: 'Repository not found.' };
         const s = params.get('success'), e = params.get('error');
         if (s) {
