@@ -282,6 +282,7 @@ async def delete_document(request: Request, doc_id: str):
         except Exception as e:
             logger.warning("Could not delete ChromaDB chunks for doc %s: %s", doc_id, str(e))
 
+        logger.info("User %s deleted document %s (%s)", user_id, doc_id, doc.title)
         await session.delete(doc)
         await session.commit()
 

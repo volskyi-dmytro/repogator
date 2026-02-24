@@ -181,6 +181,7 @@
                 <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Chunks</th>
                 <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Status</th>
                 <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Added</th>
+                <th class="px-4 py-3 text-xs font-semibold text-[#00d4ff] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody id="auto-docs-tbody" class="divide-y divide-white/5"></tbody>
@@ -241,7 +242,7 @@
           <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
           <td class="px-4 py-3 text-slate-400 text-sm font-mono">${d.created_at}</td>
           <td class="px-4 py-3">
-            <button onclick="deleteDoc('${d.id}')" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 text-sm px-3 py-1 rounded-lg transition-colors">Delete</button>
+            <button onclick="deleteDoc('${d.id}', '${escapeHtml(d.title).replace(/'/g, "\\'")}')" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 text-sm px-3 py-1 rounded-lg transition-colors">Delete</button>
           </td>
         </tr>
       `).join('');
@@ -267,13 +268,17 @@
             <td class="px-4 py-3 text-slate-300">${d.chunk_count}</td>
             <td class="px-4 py-3"><span class="status-badge-${d.status}">${d.status}</span></td>
             <td class="px-4 py-3 text-slate-400 text-sm font-mono">${d.created_at}</td>
+            <td class="px-4 py-3">
+              <button onclick="deleteDoc('${d.id}', '${escapeHtml(d.title).replace(/'/g, "\\'")}')" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 text-sm px-3 py-1 rounded-lg transition-colors">Delete</button>
+            </td>
           </tr>
         `;
       }).join('');
     }
 
-    async function deleteDoc(docId) {
-      if (!confirm('Delete this document from your knowledge base?')) return;
+    async function deleteDoc(docId, docTitle) {
+      const label = docTitle ? `"${docTitle}"` : 'this document';
+      if (!confirm(`Remove ${label} from your knowledge base?\n\nThis will delete all indexed chunks and cannot be undone.`)) return;
       const res = await fetch(`/knowledge/${docId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) loadDocs();
