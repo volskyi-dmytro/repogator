@@ -164,10 +164,56 @@
       <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 gradient-text">
         AI-powered SDLC automation<br/>for your GitHub repos
       </h1>
-      <p class="text-base sm:text-xl text-slate-400 max-w-2xl mx-auto mb-12 glow-sub">
-        Every new issue gets requirements analysis. Every new PR gets a code review.
-        Every merged PR gets a documentation summary. All automatically.
-      </p>
+      <!-- Event feed value prop -->
+      <div class="relative max-w-xl mx-auto mb-12">
+        <!-- Terminal panel -->
+        <div class="rounded-xl border border-white/10 overflow-hidden" style="background: rgba(5,8,18,0.85); backdrop-filter: blur(16px);">
+          <!-- Terminal top bar -->
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-white/5" style="background: rgba(255,255,255,0.03);">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/60"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-green-500/60"></span>
+            <span class="ml-2 text-xs text-slate-500 font-mono">repogator — webhook events</span>
+            <span class="ml-auto flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              <span class="text-xs text-green-400/70 font-mono">listening</span>
+            </span>
+          </div>
+          <!-- Event rows -->
+          <div class="px-5 py-4 flex flex-col gap-3">
+
+            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.2s;">
+              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #00d4ff; border-color: rgba(0,212,255,0.35); background: rgba(0,212,255,0.07);">issues.opened</span>
+              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span class="text-sm text-slate-300 text-left">Requirements analysis &amp; acceptance criteria <span class="text-slate-500">posted as comment</span></span>
+            </div>
+
+            <div class="w-full h-px" style="background: rgba(255,255,255,0.04);"></div>
+
+            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.5s;">
+              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #00ff88; border-color: rgba(0,255,136,0.35); background: rgba(0,255,136,0.07);">pull_request.opened</span>
+              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span class="text-sm text-slate-300 text-left">Code review against your project's conventions <span class="text-slate-500">posted as comment</span></span>
+            </div>
+
+            <div class="w-full h-px" style="background: rgba(255,255,255,0.04);"></div>
+
+            <div class="feed-row flex items-center gap-3 opacity-0" style="animation: feed-in 0.5s ease forwards 0.8s;">
+              <span class="font-mono text-xs px-2 py-0.5 rounded border shrink-0" style="color: #a78bfa; border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.07);">pull_request.merged</span>
+              <svg class="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              <span class="text-sm text-slate-300 text-left">Documentation summary of what changed and why <span class="text-slate-500">posted as comment</span></span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <style>
+        @keyframes feed-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      </style>
       <a href="/auth/github"
          class="cta-btn inline-flex items-center gap-3 text-gray-900 font-semibold text-lg px-8 py-4 rounded-xl transition-all duration-300">
         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
