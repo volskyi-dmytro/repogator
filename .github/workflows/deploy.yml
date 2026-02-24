@@ -64,6 +64,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
           cd /opt/repogator
+          GRAFANA_PASS=$(grep ^GRAFANA_PASSWORD .env | cut -d= -f2)
+          echo "admin:$(openssl passwd -apr1 "$GRAFANA_PASS")" | sudo tee /etc/nginx/grafana.htpasswd > /dev/null
           docker pull ${{ secrets.DOCKER_USERNAME }}/repogator:${{ github.sha }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} IMAGE_TAG=${{ github.sha }} docker compose -f docker-compose.prod.yml up -d --no-deps app
           docker compose -f docker-compose.prod.yml up -d prometheus grafana cadvisor

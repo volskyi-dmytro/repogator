@@ -1,11 +1,11 @@
 import shutil
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, func, text
 
-from app.auth.session import require_user
+from app.auth.session import get_current_user
 from app.config import settings
 from app.db.models import User, TrackedRepo, UserSettings, WebhookEvent, AgentAction, KnowledgeDocument
 from app.db.session import AsyncSessionLocal
@@ -16,7 +16,9 @@ templates = Jinja2Templates(directory="frontend/templates")
 
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
-    session_data = require_user(request)
+    session_data = get_current_user(request)
+    if not session_data:
+        return RedirectResponse("/", status_code=302)
     if not session_data.get("is_admin"):
         raise HTTPException(status_code=403, detail="Admin access required")
 
