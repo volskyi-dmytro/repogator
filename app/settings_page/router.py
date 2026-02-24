@@ -88,11 +88,11 @@ async def save_settings(request: Request):
         return RedirectResponse("/")
 
     form = await request.form()
-    openrouter_key = (form.get("openrouter_api_key") or "").strip() or None
+    openrouter_key = (form.get("openrouter_api_key") or "").strip()
     openrouter_model = (
         (form.get("openrouter_model") or "").strip() or "anthropic/claude-3.5-sonnet"
     )
-    openai_key = (form.get("openai_api_key") or "").strip() or None
+    openai_key = (form.get("openai_api_key") or "").strip()
     openai_embedding_model = (
         (form.get("openai_embedding_model") or "").strip()
         or "text-embedding-3-small"
@@ -105,9 +105,13 @@ async def save_settings(request: Request):
         user_settings = result.scalar_one_or_none()
 
         if user_settings:
-            if openrouter_key:
+            if openrouter_key == "__CLEAR__":
+                user_settings.openrouter_api_key = None
+            elif openrouter_key:
                 user_settings.openrouter_api_key = openrouter_key
-            if openai_key:
+            if openai_key == "__CLEAR__":
+                user_settings.openai_api_key = None
+            elif openai_key:
                 user_settings.openai_api_key = openai_key
             user_settings.openrouter_model = openrouter_model
             user_settings.openai_embedding_model = openai_embedding_model
@@ -118,9 +122,9 @@ async def save_settings(request: Request):
             user_settings = UserSettings(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
-                openrouter_api_key=openrouter_key,
+                openrouter_api_key=openrouter_key if openrouter_key and openrouter_key != "__CLEAR__" else None,
                 openrouter_model=openrouter_model,
-                openai_api_key=openai_key,
+                openai_api_key=openai_key if openai_key and openai_key != "__CLEAR__" else None,
                 openai_embedding_model=openai_embedding_model,
             )
             session.add(user_settings)

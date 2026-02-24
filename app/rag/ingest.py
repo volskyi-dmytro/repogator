@@ -125,7 +125,7 @@ async def ingest_directory(
     return total
 
 
-def chunk_text(text: str, chunk_size: int = 400, overlap: int = 40) -> list[str]:
+def chunk_text(text: str, chunk_size: int = 150, overlap: int = 20) -> list[str]:
     """Split text into overlapping word-count chunks."""
     words = text.split()
     chunks = []

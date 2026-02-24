@@ -103,6 +103,8 @@ async def auto_ingest_repo_docs(repo_full_name: str, user_id: str, github_token:
                 data = resp.json()
 
                 content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                import logging as _logging
+                _logging.getLogger(__name__).info("Fetched %s from %s: %d chars", filename, repo_full_name, len(content))
                 content_hash = hashlib.sha256(content.encode()).hexdigest()
                 html_url = data.get("html_url", url)
 
