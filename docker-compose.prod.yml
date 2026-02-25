@@ -65,6 +65,8 @@ services:
     container_name: repogator-prometheus
     restart: unless-stopped
     mem_limit: 256m
+    ports:
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/prometheus_alerts.yml:/etc/prometheus/alerts.yml:ro
@@ -74,6 +76,8 @@ services:
       - '--storage.tsdb.retention.time=30d'
       - '--storage.tsdb.path=/prometheus'
       - '--web.enable-lifecycle'
+      - '--web.external-url=https://repogator.gojoble.online/prometheus/'
+      - '--web.route-prefix=/prometheus/'
     networks:
       - repogator
 
