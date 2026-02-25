@@ -2,6 +2,6 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
-    url: http://repogator-prometheus:9090
+    url: http://repogator-prometheus:9090/prometheus
     isDefault: true
     editable: false
