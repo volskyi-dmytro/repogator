@@ -62,7 +62,7 @@ jobs:
           rsync -az --mkpath -e "ssh -i ~/.ssh/deploy_key" monitoring/ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/repogator/monitoring/
       - name: Deploy to VPS
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << DEPLOY
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'DEPLOY'
           cd /opt/repogator
           GRAFANA_PASS=$(grep ^GRAFANA_PASSWORD .env | cut -d= -f2)
           echo "admin:$(openssl passwd -apr1 "$GRAFANA_PASS")" | sudo tee /etc/nginx/grafana.htpasswd > /dev/null
