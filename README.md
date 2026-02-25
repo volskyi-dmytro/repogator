@@ -24,7 +24,7 @@ Event processing is durable. On container restart, any events with `status=recei
 ┌─────────────────────────────────────────────────────────────┐
 │                    FastAPI Application                       │
 │  POST /webhook/{owner}/{repo} → Verify → DB Log → Queue     │
-│  POST /webhook (legacy, global secret)                      │
+│  POST /webhook (legacy, global secret)                       │
 └──────────────┬────────────────────────────┬─────────────────┘
                │                            │
                ▼                            ▼
@@ -35,16 +35,20 @@ Event processing is durable. On container restart, any events with `status=recei
 │                      │      │   GET /repos                 │
 │  ┌────────────────┐  │      │   GET /settings              │
 │  │Requirements    │  │      │   GET /knowledge             │
-│  │Agent (Issues)  │  │      │   GET /auth/github           │
-│  └────────────────┘  │      └─────────────────────────────┘
-│  ┌────────────────┐  │
-│  │Code Review     │  │      ┌─────────────────────────────┐
-│  │Agent (PRs)     │  │      │   Infrastructure             │
-│  └────────────────┘  │      │  ├── PostgreSQL (DB)        │
-│  ┌────────────────┐  │      │  ├── Redis (job queue)      │
-│  │Docs Agent      │  │      │  ├── ChromaDB (per-user)    │
-│  └────────────────┘  │      │  └── nginx (reverse proxy)  │
-└──────────────────────┘      └─────────────────────────────┘
+│  │Agent (Issues)  │  │      │   GET /admin     (admin)    │
+│  └────────────────┘  │      │   GET /auth/github           │
+│  ┌────────────────┐  │      └─────────────────────────────┘
+│  │Code Review     │  │
+│  │Agent (PRs)     │  │      ┌─────────────────────────────┐
+│  └────────────────┘  │      │   Infrastructure             │
+│  ┌────────────────┐  │      │  ├── PostgreSQL (DB)        │
+│  │Docs Agent      │  │      │  ├── Redis (job queue)      │
+│  └────────────────┘  │      │  ├── ChromaDB (per-user)    │
+└──────────────────────┘      │  ├── Prometheus (metrics)   │
+                               │  ├── Grafana (dashboards)   │
+                               │  ├── cAdvisor (containers)  │
+                               │  └── nginx (reverse proxy)  │
+                               └─────────────────────────────┘
 ```
 
 ## Features
@@ -59,7 +63,9 @@ Event processing is durable. On container restart, any events with `status=recei
 - Admin fallback keys for users who have not configured their own
 - Durable event queue — events are re-queued on restart, no data loss
 - Append-only audit log for all significant application events
-- Health check endpoint covering all downstream services
+- Prometheus metrics endpoint (`/metrics`) with counters, histograms, and gauges for webhooks, agent runs, queue depth, and system resources
+- Grafana dashboards for pipeline health, traffic, and container metrics — accessible at `/grafana/`
+- Admin dashboard (`/admin`) showing live system health, DB stats, user list, and top repositories
 
 ## Tech Stack
 
@@ -73,6 +79,7 @@ Event processing is durable. On container restart, any events with `status=recei
 | Vector Store | ChromaDB | Per-user knowledge base with shared fallback |
 | Job Queue | Redis | Async webhook event processing |
 | Database | PostgreSQL + SQLAlchemy | Users, repos, events, knowledge docs, audit log |
+| Metrics | Prometheus + Grafana + cAdvisor | Observability, alerting, container metrics |
 | Reverse Proxy | nginx | Reverse proxy, SSL termination |
 | Containerization | Docker + Docker Compose | Local dev and production deployment |
 | CI/CD | GitHub Actions | Automated test, build, push, deploy |
@@ -83,7 +90,7 @@ Each user authenticates via GitHub OAuth. The initial OAuth flow requests only `
 
 Users configure their own OpenRouter and OpenAI API keys in the Settings page. When keys are present, all agent LLM calls and embedding lookups are billed to the user's own accounts. If a user has not set their keys, the system falls back to the admin-level keys configured via the `OPENROUTER_API_KEY` and `OPENAI_API_KEY` environment variables. Events for users without keys and without admin fallback keys will fail with a clear error recorded in the event log.
 
-The admin user is determined by the `ADMIN_EMAIL` environment variable. Any GitHub account whose primary email matches this value is granted admin status on first login.
+The admin user is determined by the `ADMIN_EMAIL` environment variable. Any GitHub account whose primary email matches this value is granted admin status on first login, unlocking the `/admin` dashboard.
 
 ## Getting Started (Local Development)
 
@@ -155,6 +162,7 @@ No actual values should be committed to version control. Copy `.env.example` to 
 | `SESSION_SECRET_KEY` | Secret for signing session cookies — use `python -c "import secrets; print(secrets.token_hex(32))"` | Yes |
 | `APP_BASE_URL` | Public base URL used for webhook callback registration | Yes |
 | `ADMIN_EMAIL` | GitHub account email that receives admin privileges on first login | Yes |
+| `GRAFANA_PASSWORD` | Grafana admin password — also used for nginx basic auth in front of `/grafana/` | Yes (prod) |
 
 ## Deployment
 
@@ -162,7 +170,14 @@ RepoGator is deployed with Docker Compose behind nginx. The CI/CD pipeline (`.gi
 
 1. **Test** — runs the full test suite
 2. **Build** — builds and pushes the Docker image to Docker Hub
-3. **Deploy** — SSHs into the server, pulls the new image, and restarts services with `docker compose up -d`
+3. **Deploy** — SSHs into the server, syncs config files, pulls the new image, restarts services, and reloads nginx
+
+The deploy step handles:
+- Syncing `docker-compose.prod.yml` and `monitoring/` configs via rsync
+- Syncing `nginx/repogator.conf` to `/etc/nginx/sites-available/` via `scp` + `sudo mv`
+- Generating `/etc/nginx/grafana.htpasswd` from `GRAFANA_PASSWORD` in `.env`
+- Starting Prometheus, Grafana, and cAdvisor if not already running
+- Running `nginx -t && nginx -s reload` to apply config changes
 
 Required GitHub Actions secrets:
 
@@ -175,6 +190,17 @@ Required GitHub Actions secrets:
 | `VPS_SSH_KEY` | Private SSH key for deployment |
 
 For full deployment instructions including nginx configuration, SSL setup, and environment variable management on the server, see `docs/go-live-guide.md`.
+
+## Observability
+
+In production, Prometheus scrapes `/metrics` every 15 seconds. The endpoint is blocked externally by nginx (only accessible from localhost and Docker internal networks). Grafana is available at `/grafana/` behind HTTP Basic Auth (username: `admin`, password: `GRAFANA_PASSWORD`). The pre-provisioned dashboard covers:
+
+- Agent runs per minute, success rate %, and p50/p95 latency
+- Webhook event volume by event type and repository
+- Redis queue depth over time
+- Container CPU and memory usage (via cAdvisor)
+
+Alert rules fire when agent failure rate exceeds 20% over 5 minutes, or queue depth exceeds 50 events.
 
 ## License
 
