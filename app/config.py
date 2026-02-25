@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # Queue
     webhook_queue_name: str = "repogator:webhook_events"
 
+    # Data retention
+    data_retention_days: int = 90
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

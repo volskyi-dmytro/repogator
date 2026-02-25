@@ -1,7 +1,9 @@
 import asyncio
 import time
 import traceback
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
@@ -9,14 +11,14 @@ from fastapi.responses import PlainTextResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select, update as sa_update
+from sqlalchemy import select, update as sa_update, delete as sa_delete
 
 from app.config import settings
 from app.core.logging import CorrelationIdMiddleware, get_logger
 from app.core.metrics import agent_runs_total, agent_duration_seconds
 from app.core.queue import QueueWorker, RedisQueue
 from app.db.session import create_all_tables, dispose_engine, AsyncSessionLocal
-from app.db.models import WebhookEvent
+from app.db.models import WebhookEvent, AuditLog
 from app.webhooks.router import get_queue, router as webhook_router
 from app.dashboard.router import router as dashboard_router
 from app.auth.router import router as auth_router
@@ -24,6 +26,7 @@ from app.repos.router import router as repos_router
 from app.settings_page.router import router as settings_router
 from app.knowledge.router import router as knowledge_router
 from app.admin.router import router as admin_router
+from app.privacy.router import router as privacy_router
 
 logger = get_logger(__name__)
 
@@ -147,6 +150,66 @@ async def _dispatch_event(event: dict) -> None:
             )
 
 
+async def _run_retention_cleanup() -> None:
+    """Background task: delete old processed webhook events and audit log entries once per day.
+
+    Only deletes records older than DATA_RETENTION_DAYS. Never deletes events with
+    status 'received' or 'processing' — those may still be in the queue.
+    """
+    while True:
+        try:
+            await asyncio.sleep(24 * 60 * 60)  # run daily
+            cutoff = datetime.utcnow() - timedelta(days=settings.data_retention_days)
+
+            async with AsyncSessionLocal() as session:
+                # Delete completed/failed webhook events beyond retention window
+                result = await session.execute(
+                    sa_delete(WebhookEvent).where(
+                        WebhookEvent.created_at < cutoff,
+                        WebhookEvent.status.in_(["completed", "failed"]),
+                    )
+                )
+                events_deleted = result.rowcount
+
+                # Delete audit log entries beyond retention window
+                result = await session.execute(
+                    sa_delete(AuditLog).where(AuditLog.created_at < cutoff)
+                )
+                audit_deleted = result.rowcount
+
+                # Write a summary entry to the audit log
+                session.add(AuditLog(
+                    id=str(uuid.uuid4()),
+                    correlation_id="retention-cleanup",
+                    level="INFO",
+                    message=(
+                        f"Data retention cleanup: deleted {events_deleted} webhook events "
+                        f"and {audit_deleted} audit log entries older than "
+                        f"{settings.data_retention_days} days"
+                    ),
+                    context={
+                        "events_deleted": events_deleted,
+                        "audit_deleted": audit_deleted,
+                        "retention_days": settings.data_retention_days,
+                        "cutoff": cutoff.isoformat(),
+                    },
+                ))
+                await session.commit()
+
+            logger.info(
+                "Retention cleanup complete",
+                extra={
+                    "events_deleted": events_deleted,
+                    "audit_deleted": audit_deleted,
+                    "retention_days": settings.data_retention_days,
+                },
+            )
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logger.error("Retention cleanup failed", extra={"error": str(exc)}, exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application startup and shutdown lifecycle.
@@ -193,10 +256,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     worker_task = asyncio.create_task(worker.start(), name="queue-worker")
     logger.info("Queue worker started")
 
+    # Start daily data retention cleanup task
+    retention_task = asyncio.create_task(_run_retention_cleanup(), name="retention-cleanup")
+    logger.info("Data retention cleanup task started (runs every 24h)")
+
     yield
 
     # Graceful shutdown
     worker.stop()
+    retention_task.cancel()
     try:
         await asyncio.wait_for(worker_task, timeout=5.0)
     except asyncio.TimeoutError:
@@ -241,6 +309,7 @@ app.include_router(repos_router, prefix="", tags=["repos"])
 app.include_router(settings_router, prefix="", tags=["settings"])
 app.include_router(knowledge_router, prefix="", tags=["knowledge"])
 app.include_router(admin_router, prefix="", tags=["admin"])
+app.include_router(privacy_router, prefix="", tags=["privacy"])
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 

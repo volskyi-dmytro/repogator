@@ -1,4 +1,26 @@
-"""ChromaDB knowledge base for RAG retrieval."""
+"""ChromaDB knowledge base for RAG retrieval.
+
+## Collection Isolation Model
+
+Each user's knowledge base is completely isolated from all other users through
+per-user collection naming. Collections follow the pattern:
+
+    {collection_type}_{user_id}
+
+For example:
+    requirements_3f7a2b1c-...   (user A's requirements collection)
+    requirements_9d4e5f6g-...   (user B's requirements collection)
+
+No query ever touches another user's collection because the collection name is
+always scoped by the user_id passed at KnowledgeBase construction time.
+
+The `retrieve()` method queries the user's own collection first, then falls back
+to shared system collections (no user_id suffix) for admin-ingested global context.
+Shared collections contain only admin-uploaded content; no user data ever enters them.
+
+To delete a user's data completely, delete all ChromaDB collections whose names
+end with _{user_id}.
+"""
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from openai import AsyncOpenAI
