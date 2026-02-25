@@ -107,7 +107,7 @@ RELEVANT BEST PRACTICES FROM KNOWLEDGE BASE:
 
 Return a JSON object with these exact fields:
 - enriched_title: Improved, specific story title (start with "As a [user]..." if appropriate)
-- acceptance_criteria: Array of 3-5 acceptance criteria in "Given/When/Then" format
+- acceptance_criteria: Array of 3-5 strings, each a SINGLE pre-formatted string like "Given X, When Y, Then Z" — NOT an object, just a plain string
 - edge_cases: Array of 3-5 edge cases to consider
 - suggested_labels: Array of GitHub labels (e.g. ["bug", "authentication", "high-priority"])
 - complexity: One of "XS", "S", "M", "L", "XL" based on INVEST complexity guide"""
