@@ -23,5 +23,5 @@ authlib==1.6.9
 itsdangerous==2.2.0
 pypdf==6.9.2
 html2text==2024.2.26
-prometheus-client==0.21.0
+prometheus-client==0.25.0
 psutil==6.1.0
