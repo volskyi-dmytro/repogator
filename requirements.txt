@@ -17,7 +17,7 @@ python-multipart==0.0.22
 structlog==24.4.0
 pytest==8.3.3
 pytest-asyncio==0.24.0
-pytest-mock==3.14.0
+pytest-mock==3.15.1
 anyio==4.6.2
 authlib==1.6.9
 itsdangerous==2.2.0
